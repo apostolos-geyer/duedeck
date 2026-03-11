@@ -10,9 +10,13 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@orpc/client": "latest",
+    "@orpc/server": "latest",
     "@repo/auth": "workspace:*",
     "@repo/db": "workspace:*",
+    "@repo/storage": "workspace:*",
     "@repo/ui": "*",
+    "arktype": "^2.2.0",
     "better-auth": "^1.0.0",
     "next": "16.1.5",
     "react": "^19.2.0",
