@@ -1,0 +1,31 @@
+{
+  "name": "@repo/ui",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./src/tamagui.config.ts",
+    "./provider": "./src/provider.tsx",
+    "./*": "./src/*.tsx"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "*",
+    "@types/node": "^22.15.3",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "@tamagui/config": "^2.0.0-rc.25",
+    "@tamagui/web": "^2.0.0-rc.25",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tamagui": "^2.0.0-rc.25"
+  }
+}
