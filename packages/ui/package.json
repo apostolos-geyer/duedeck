@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./config": "./src/tamagui.config.ts",
     "./provider": "./src/provider.tsx",
+    "./form": "./src/form/index.ts",
     "./*": "./src/*.tsx"
   },
   "scripts": {
@@ -24,6 +25,7 @@
   "dependencies": {
     "@tamagui/config": "^2.0.0-rc.25",
     "@tamagui/web": "^2.0.0-rc.25",
+    "@tanstack/react-form": "^1.28.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tamagui": "^2.0.0-rc.25"
