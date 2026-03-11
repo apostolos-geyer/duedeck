@@ -1,15 +1,16 @@
-"use client";
+import { auth } from "@repo/auth/server";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { HomePage } from "./_components/home-page";
 
-import { Button, H1, Paragraph, YStack } from "@repo/ui";
+export default async function Home() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-export default function Home() {
-  return (
-    <YStack gap="$4" items="center" p="$6" grow={1}>
-      <H1>DueDeck</H1>
-      <Paragraph>
-        Get started by editing <code>apps/web/app/page.tsx</code>
-      </Paragraph>
-      <Button onPress={() => alert("Hello from DueDeck!")}>Open alert</Button>
-    </YStack>
-  );
+  if (!session) {
+    redirect("/auth");
+  }
+
+  return <HomePage user={session.user} />;
 }

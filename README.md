@@ -1,158 +1,118 @@
-# Turborepo starter
+# DueDeck
 
-This Turborepo starter is maintained by the Turborepo core team.
+Cross-platform assignment tracker built with Next.js, Tamagui, and Expo.
 
-## Using this example
+## Tech Stack
 
-Run the following command:
+- **Monorepo:** Turborepo + Bun
+- **Web:** Next.js 16 (App Router, Turbopack)
+- **UI:** Tamagui v2 (cross-platform)
+- **Auth:** Better Auth (email/password)
+- **Database:** PostgreSQL + Prisma v7
+- **Linting:** Biome
 
-```sh
-npx create-turbo@latest
+## Project Structure
+
+```
+apps/
+  web/              Next.js web app (port 3000)
+packages/
+  ui/               Shared Tamagui components (@repo/ui)
+  auth/             Better Auth server + client config (@repo/auth)
+  db/               Prisma schema + client (@repo/db)
+  typescript-config/ Shared tsconfig
 ```
 
-## What's inside?
+## Getting Started
 
-This Turborepo includes the following packages/apps:
+### Prerequisites
 
-### Apps and Packages
+- [Bun](https://bun.sh/) >= 1.3
+- [Docker](https://www.docker.com/) (for local PostgreSQL)
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: shared UI/design system library built on [Tamagui v5](https://tamagui.dev/) (see [`packages/ui/TAMAGUI.md`](packages/ui/TAMAGUI.md) for config details)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+### Setup
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+```bash
+# 1. Clone and install
+bun install
 
-### Utilities
+# 2. Create your .env from the template
+cp .env.example .env
+# Edit .env if needed (defaults work for local dev)
 
-This Turborepo has some additional tools already setup for you:
+# 3. Start PostgreSQL (runs on port 5433)
+docker compose up -d
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [Biome](https://biomejs.dev/) for code linting and formatting
-- [Tamagui v5](https://tamagui.dev/) for cross-platform UI components and design system
+# 4. Generate Prisma client
+bun run db:generate
 
-### Build
+# 5. Push schema to database
+bun run db:push
 
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+# 6. Start dev server
+bun run dev
 ```
 
-Without global `turbo`, use your package manager:
+Visit http://localhost:3000 — you'll be redirected to `/auth` to sign in or create an account.
 
-```sh
-cd my-turborepo
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+## Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Start all apps in dev mode |
+| `bun run build` | Build all apps and packages |
+| `bun run check-types` | TypeScript type checking |
+| `bun run lint` | Run Biome linting |
+| `bun run lint:fix` | Auto-fix lint issues |
+| `bun run db:generate` | Generate Prisma client from schema |
+| `bun run db:push` | Push Prisma schema to database (no migration) |
+| `bun run db:studio` | Open Prisma Studio GUI |
+
+## Database
+
+PostgreSQL via Docker Compose on **port 5433** (5432 may conflict with other local databases).
+
+### After changing the Prisma schema
+
+```bash
+bun run db:generate   # Regenerate the Prisma client
+bun run db:push       # Push changes to the database
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### After changing Better Auth config (adding plugins, etc.)
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+```bash
+# Regenerate auth tables in the Prisma schema
+bunx @better-auth/cli generate --output ./packages/db/prisma/schema.prisma --config ./packages/auth/src/server.ts --yes
 
-```sh
-turbo build --filter=docs
+# Then regenerate + push
+bun run db:generate
+bun run db:push
 ```
 
-Without global `turbo`:
+### Migrations (when ready for production)
 
-```sh
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```bash
+cd packages/db
+bunx --bun prisma migrate dev --name <migration_name>   # Create migration
+bunx --bun prisma migrate deploy                         # Apply in production
 ```
 
-### Develop
+## Auth
 
-To develop all apps and packages, run the following command:
+- **Server config:** `packages/auth/src/server.ts`
+- **Client config:** `packages/auth/src/client.ts`
+- **API route:** `apps/web/app/api/auth/[...all]/route.ts`
+- **Auth UI:** `apps/web/app/(auth)/auth/page.tsx`
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+Email verification is currently **disabled**. To enable it, set `requireEmailVerification: true` in the server config and add an email provider.
 
-```sh
-cd my-turborepo
-turbo dev
-```
+## Environment Variables
 
-Without global `turbo`, use your package manager:
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://duedeck:duedeck@localhost:5433/duedeck` |
+| `BETTER_AUTH_SECRET` | Auth encryption secret (32+ chars) | Generated in `.env` |
+| `BETTER_AUTH_URL` | Base URL for auth callbacks | `http://localhost:3000` |
 
-```sh
-cd my-turborepo
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+The root `.env` is symlinked into `apps/web/.env` so Next.js picks it up automatically.
