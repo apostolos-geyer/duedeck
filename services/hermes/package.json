@@ -1,0 +1,8 @@
+{
+  "name": "@repo/hermes-server",
+  "description": "Hermes document parsing server. Python FastAPI service that downloads PDFs from S3, parses via MinerU, uploads extracted markdown back to S3, and fires a webhook callback. The parsing backend (currently MinerU) is an implementation detail.",
+  "private": true,
+  "scripts": {
+    "dev": "uv run uvicorn src.main:app --reload --host 127.0.0.1 --port 8000"
+  }
+}

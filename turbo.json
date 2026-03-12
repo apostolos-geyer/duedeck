@@ -18,6 +18,11 @@
     "//#format-and-lint:fix": {
       "cache": false
     },
+    "codegen": {
+      "dependsOn": ["^codegen"],
+      "inputs": ["configs/**", "*.config.ts"],
+      "outputs": ["src/hermes/**"]
+    },
     "check-types": {
       "dependsOn": ["^check-types"]
     },
