@@ -1,47 +1,84 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { SizableText, Spinner, View, XStack, YStack } from "@repo/ui";
 import { Check } from "@tamagui/lucide-icons";
 
-const STEPS = [
-	"Uploading PDF",
-	"Computing content hash",
-	"Checking for duplicates",
-	"Parsing document",
-	"Extracting deadlines",
+export type ProgressStep =
+	| "uploading"
+	| "hashing"
+	| "dedup"
+	| "parsing"
+	| "extracting"
+	| "done";
+
+const STEP_ORDER: ProgressStep[] = [
+	"hashing",
+	"dedup",
+	"parsing",
+	"extracting",
 ];
 
-interface ProcessingStepsProps {
-	onComplete: () => void;
+const STEP_LABELS: Record<ProgressStep, string> = {
+	uploading: "Uploading PDF",
+	hashing: "Computing content hash",
+	dedup: "Checking for duplicates",
+	parsing: "Parsing document",
+	extracting: "Extracting deadlines",
+	done: "Done",
+};
+
+export interface ProgressEvent {
+	step: ProgressStep;
+	status: "start" | "done";
+	data?: Record<string, unknown>;
 }
 
-export function ProcessingSteps({ onComplete }: ProcessingStepsProps) {
-	const [currentStep, setCurrentStep] = useState(0);
+interface ProcessingStepsProps {
+	events: ProgressEvent[];
+	onComplete: (data?: Record<string, unknown>) => void;
+}
+
+export function ProcessingSteps({ events, onComplete }: ProcessingStepsProps) {
+	const completedSteps = useMemo(() => {
+		const set = new Set<ProgressStep>();
+		for (const event of events) {
+			if (event.status === "done" && event.step !== "done") {
+				set.add(event.step);
+			}
+		}
+		return set;
+	}, [events]);
+
+	const activeStep = useMemo((): ProgressStep => {
+		for (let i = events.length - 1; i >= 0; i--) {
+			const evt = events[i];
+			if (evt && evt.status === "start") {
+				return evt.step;
+			}
+		}
+		return "hashing";
+	}, [events]);
+
+	const doneEvent = useMemo(() => {
+		return events.find((e) => e.step === "done" && e.status === "done");
+	}, [events]);
 
 	useEffect(() => {
-		if (currentStep >= STEPS.length) {
-			onComplete();
-			return;
+		if (doneEvent) {
+			onComplete(doneEvent.data);
 		}
-
-		const timer = setTimeout(() => {
-			setCurrentStep((s) => s + 1);
-		}, 1500);
-
-		return () => clearTimeout(timer);
-	}, [currentStep, onComplete]);
+	}, [doneEvent, onComplete]);
 
 	return (
 		<YStack gap="$2" py="$4" items="flex-start">
-			{STEPS.map((label, index) => {
-				const isCompleted = index < currentStep;
-				const isActive = index === currentStep;
+			{STEP_ORDER.map((step, index) => {
+				const isCompleted = completedSteps.has(step);
+				const isActive = step === activeStep && !isCompleted;
 
 				return (
-					<YStack key={label} items="flex-start">
+					<YStack key={step} items="flex-start">
 						<XStack gap="$3" items="center">
-							{/* Circle indicator */}
 							<View
 								width={32}
 								height={32}
@@ -63,7 +100,6 @@ export function ProcessingSteps({ onComplete }: ProcessingStepsProps) {
 								) : null}
 							</View>
 
-							{/* Label */}
 							<SizableText
 								size="$4"
 								fontWeight={isActive ? "700" : "400"}
@@ -75,12 +111,11 @@ export function ProcessingSteps({ onComplete }: ProcessingStepsProps) {
 											: "$gray8"
 								}
 							>
-								{label}
+								{STEP_LABELS[step]}
 							</SizableText>
 						</XStack>
 
-						{/* Connecting line */}
-						{index < STEPS.length - 1 && (
+						{index < STEP_ORDER.length - 1 && (
 							<View
 								width={2}
 								height={24}

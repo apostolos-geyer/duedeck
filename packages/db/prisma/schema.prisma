@@ -18,6 +18,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  documents     Document[]
 
   @@unique([email])
   @@map("user")
@@ -69,4 +70,24 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model Document {
+  id                  String   @id @default(cuid())
+  sectionId           String
+  filename            String
+  s3Key               String
+  contentHash         String
+  parsedS3Key         String?
+  uploadedById        String
+  status              String   @default("pending")
+  error               String?
+  uploadedAt          DateTime @default(now())
+  parsedDeadlineCount Int      @default(0)
+
+  uploadedBy          User     @relation(fields: [uploadedById], references: [id])
+
+  @@index([sectionId, contentHash])
+  @@index([uploadedById])
+  @@map("document")
 }

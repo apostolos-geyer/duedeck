@@ -1,11 +1,14 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import { withWorkflow } from "workflow/next";
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   transpilePackages: [
     "@repo/ui",
     "@repo/app",
     "@repo/auth",
     "@repo/db",
     "@repo/storage",
+    "@repo/hermes",
     "tamagui",
     "@tamagui/lucide-icons",
     "@tamagui/react-native-svg",
@@ -29,4 +32,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withWorkflow(nextConfig);
