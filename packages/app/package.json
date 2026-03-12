@@ -1,0 +1,22 @@
+{
+  "name": "@repo/app",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./screens/*": "./src/screens/*/index.ts",
+    "./mock-data": "./src/mock-data.ts"
+  },
+  "dependencies": {
+    "@repo/ui": "*",
+    "@tamagui/lucide-icons": "^2.0.0-rc.25",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "*",
+    "@types/react": "19.2.2",
+    "typescript": "5.9.2"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  }
+}

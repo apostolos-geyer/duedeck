@@ -1,3 +1,5 @@
+import "@tamagui/core/reset.css";
+import "@/public/tamagui.generated.css";
 import { Provider } from "@repo/ui/provider";
 import type { Metadata } from "next";
 
