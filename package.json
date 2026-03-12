@@ -8,6 +8,7 @@
     "lint:fix": "turbo run //#format-and-lint:fix",
     "format-and-lint": "biome check .",
     "format-and-lint:fix": "biome check --write .",
+    "codegen": "turbo run codegen",
     "check-types": "turbo run check-types",
     "db:generate": "turbo run db:generate",
     "db:push": "turbo run db:push",
@@ -24,6 +25,7 @@
   "packageManager": "bun@1.3.4",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "services/*"
   ]
 }

@@ -1,0 +1,19 @@
+{
+  "name": "@repo/hermes",
+  "description": "Type-safe client for the Hermes document parsing service. Hermes accepts an S3 key, parses the document (currently via MinerU), uploads the extracted markdown back to S3, and notifies a webhook on completion. The parsing backend is swappable — this client only knows the API contract.",
+  "private": true,
+  "scripts": {
+    "codegen": "openapi-ts --file ./hermes.oapi-ts.config.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./hermes": "./src/hermes/index.ts"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.90.8",
+    "@repo/typescript-config": "workspace:*"
+  },
+  "dependencies": {
+    "@hey-api/client-fetch": "latest"
+  }
+}
