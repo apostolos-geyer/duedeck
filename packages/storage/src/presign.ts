@@ -1,6 +1,6 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { s3, UPLOADS_BUCKET } from "./client.js";
+import { s3, UPLOADS_BUCKET } from "./client";
 
 export async function createPresignedUpload(opts: {
   key: string;
