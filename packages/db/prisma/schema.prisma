@@ -16,10 +16,17 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  school        String?
+  program       String?
+  currentTerm   String?
   sessions      Session[]
   accounts      Account[]
   documents     Document[]
-
+  enrollments   Enrollment[]
+  studyGroupMemberships StudyGroupMember[]
+  sentMessages  Message[]
+  calendarConnections CalendarConnection[]
+  reminderPreferences ReminderPreference[]
   @@unique([email])
   @@map("user")
 }
@@ -73,21 +80,168 @@ model Verification {
 }
 
 model Document {
-  id                  String   @id @default(cuid())
+  id                  String        @id @default(uuid())
   sectionId           String
   filename            String
   s3Key               String
   contentHash         String
   parsedS3Key         String?
   uploadedById        String
-  status              String   @default("pending")
+  status              String        @default("pending")
   error               String?
-  uploadedAt          DateTime @default(now())
-  parsedDeadlineCount Int      @default(0)
+  uploadedAt          DateTime      @default(now())
+  parsedDeadlineCount Int           @default(0)
 
-  uploadedBy          User     @relation(fields: [uploadedById], references: [id])
+  uploadedBy          User          @relation(fields: [uploadedById], references: [id])
+  section             CourseSection @relation(fields: [sectionId], references: [id])
 
   @@index([sectionId, contentHash])
   @@index([uploadedById])
   @@map("document")
 }
+
+model School {
+  id        String   @id @default(uuid())
+  name      String
+  shortName String
+  courses   Course[]
+
+  @@map("school")
+}
+
+model Course {
+  id          String          @id @default(uuid())
+  schoolId    String
+  code        String
+  name        String
+  school      School          @relation(fields: [schoolId], references: [id])
+  sections    CourseSection[]
+  studyGroups StudyGroup[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@map("course")
+}
+
+model CourseSection {
+  id         String        @id @default(uuid())
+  courseId   String
+  term       String
+  section    String
+  instructor String
+  theme      String        @default("blue")
+  course     Course        @relation(fields: [courseId], references: [id])
+  deadlines  Deadline[]
+  gradeWeights GradeWeight[]
+  documents  Document[]
+  enrollments Enrollment[]
+
+  @@unique([courseId, term, section])
+  @@index([courseId])
+  @@map("course_section")
+}
+
+model Enrollment {
+  id        String        @id @default(uuid())
+  userId    String
+  sectionId String
+  enrolledAt DateTime     @default(now())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section   CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sectionId])
+  @@index([userId])
+  @@index([sectionId])
+  @@map("enrollment")
+}
+
+model Deadline {
+  id        String        @id @default(uuid())
+  sectionId String
+  title     String
+  dueDate   DateTime
+  type      String
+  weight    Float
+  completed Boolean       @default(false)
+  section   CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@index([dueDate])
+  @@map("deadline")
+}
+
+model GradeWeight {
+  id        String        @id @default(uuid())
+  sectionId String
+  label     String
+  type      String
+  weight    Float
+  section   CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@map("grade_weight")
+}
+
+model StudyGroup {
+  id         String             @id @default(uuid())
+  name       String
+  courseId   String
+  maxMembers Int                @default(6)
+  createdAt  DateTime           @default(now())
+  course     Course             @relation(fields: [courseId], references: [id])
+  members    StudyGroupMember[]
+  messages   Message[]
+
+  @@index([courseId])
+  @@map("study_group")
+}
+
+model StudyGroupMember {
+  id       String     @id @default(uuid())
+  groupId  String
+  userId   String
+  joinedAt DateTime   @default(now())
+  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("study_group_member")
+}
+
+model Message {
+  id        String     @id @default(uuid())
+  groupId   String
+  senderId  String
+  content   String
+  createdAt DateTime   @default(now())
+  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender    User       @relation(fields: [senderId], references: [id])
+
+  @@index([groupId, createdAt])
+  @@map("message")
+}
+
+model CalendarConnection {
+  id        String  @id @default(uuid())
+  userId    String
+  provider  String
+  connected Boolean @default(false)
+  email     String?
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@map("calendar_connection")
+}
+
+model ReminderPreference {
+  id            String  @id @default(uuid())
+  userId        String
+  channel       String
+  enabled       Boolean @default(true)
+  offsetMinutes Int
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel])
+  @@map("reminder_preference")
+}
+

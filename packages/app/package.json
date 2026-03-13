@@ -8,7 +8,19 @@
     "./rpc/server": "./src/rpc/router.ts",
     "./rpc/client": "./src/rpc/client.ts",
     "./rpc/query-provider": "./src/rpc/query-provider.tsx",
+    "./rpc/orpc-context": "./src/rpc/orpc-context.tsx",
+    "./components/link": "./src/components/link.tsx",
+    "./hooks/use-app-router": "./src/hooks/use-app-router.tsx",
+    "./hooks/use-pathname": "./src/hooks/use-pathname.tsx",
     "./workflows/*": "./src/workflows/*/index.ts"
+  },
+  "peerDependencies": {
+    "next": "*",
+    "expo-router": "*"
+  },
+  "peerDependenciesMeta": {
+    "next": { "optional": true },
+    "expo-router": { "optional": true }
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.0.0",

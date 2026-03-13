@@ -1,7 +1,7 @@
 import "@tamagui/core/reset.css";
 import "@/public/tamagui.generated.css";
 import { Provider } from "@repo/ui/provider";
-import { QueryProvider } from "@repo/app/rpc/query-provider";
+import { Providers } from "./_components/providers";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Provider>
-          <QueryProvider>{children}</QueryProvider>
+          <Providers>{children}</Providers>
         </Provider>
       </body>
     </html>

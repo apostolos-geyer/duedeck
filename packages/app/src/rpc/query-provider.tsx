@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { OrpcProvider } from "./orpc-context";
 
 function createQueryClient() {
 	return new QueryClient({
@@ -13,12 +14,18 @@ function createQueryClient() {
 	});
 }
 
-export function QueryProvider({ children }: { children: React.ReactNode }) {
+// biome-ignore lint: any needed for generic orpc utils type
+export function QueryProvider({ orpc, children }: { orpc?: any; children: React.ReactNode }) {
 	const [queryClient] = useState(createQueryClient);
 
-	return (
+	const inner = (
 		<QueryClientProvider client={queryClient}>
 			{children}
 		</QueryClientProvider>
 	);
+
+	if (orpc) {
+		return <OrpcProvider orpc={orpc}>{inner}</OrpcProvider>;
+	}
+	return inner;
 }
