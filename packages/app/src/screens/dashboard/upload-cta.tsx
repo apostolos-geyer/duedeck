@@ -3,11 +3,7 @@
 import { SizableText, YStack } from "@repo/ui";
 import { Upload } from "@tamagui/lucide-icons";
 
-interface UploadCTAProps {
-	onPress?: () => void;
-}
-
-export function UploadCTA({ onPress }: UploadCTAProps) {
+export function UploadCTA() {
 	return (
 		<YStack
 			borderWidth={2}
@@ -23,7 +19,6 @@ export function UploadCTA({ onPress }: UploadCTAProps) {
 			cursor="pointer"
 			minH={120}
 			$sm={{ p: "$6", minH: 160 }}
-			onPress={onPress}
 		>
 			<Upload size={32} color="$gray9" />
 			<SizableText size="$5" fontWeight="700" color="$gray11">

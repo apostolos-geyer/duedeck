@@ -4,7 +4,6 @@
   "private": true,
   "exports": {
     "./screens/*": "./src/screens/*/index.ts",
-    "./mock-data": "./src/mock-data.ts",
     "./rpc/server": "./src/rpc/router.ts",
     "./rpc/client": "./src/rpc/client.ts",
     "./rpc/query-provider": "./src/rpc/query-provider.tsx",
@@ -12,7 +11,9 @@
     "./components/link": "./src/components/link.tsx",
     "./hooks/use-app-router": "./src/hooks/use-app-router.tsx",
     "./hooks/use-pathname": "./src/hooks/use-pathname.tsx",
-    "./workflows/*": "./src/workflows/*/index.ts"
+    "./hooks": "./src/hooks/index.ts",
+    "./workflows/*": "./src/workflows/*/index.ts",
+    "./workflows/parse-document/extraction-schema": "./src/workflows/parse-document/extraction-schema.ts"
   },
   "peerDependencies": {
     "next": "*",
@@ -23,6 +24,8 @@
     "expo-router": { "optional": true }
   },
   "dependencies": {
+    "ai": "^6.0.0",
+    "ai-sdk-ollama": "^3.8.0",
     "@aws-sdk/client-s3": "^3.0.0",
     "@orpc/client": "latest",
     "@orpc/server": "latest",

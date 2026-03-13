@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, H3, SizableText, View, XStack, YStack } from "@repo/ui";
+import { Button, H3, SizableText, Spinner, View, XStack, YStack } from "@repo/ui";
 import { Check, X } from "@tamagui/lucide-icons";
-import { MOCK_USER } from "../../mock-data";
+import { useCurrentUser } from "../../hooks/use-settings";
 
 const FREE_FEATURES = [
 	"3 courses",
@@ -18,8 +18,18 @@ const PRO_FEATURES = [
 ];
 
 export function SubscriptionSection() {
-	const plan = MOCK_USER.subscription.plan;
-	const isFree = plan === "free";
+	const { data: user, isLoading } = useCurrentUser();
+
+	if (isLoading) {
+		return (
+			<YStack items="center" p="$4">
+				<Spinner size="small" />
+			</YStack>
+		);
+	}
+
+	// Default to free plan
+	const isFree = true;
 
 	return (
 		<YStack gap="$4">
@@ -29,7 +39,12 @@ export function SubscriptionSection() {
 
 			<XStack items="center" gap="$3">
 				<SizableText>Current Plan:</SizableText>
-				<View bg={isFree ? "$gray3" : "$purple3"} rounded="$2" px="$3" py="$1">
+				<View
+					bg={isFree ? "$gray3" : "$purple3"}
+					rounded="$2"
+					px="$3"
+					py="$1"
+				>
 					<SizableText fontWeight="700">
 						{isFree ? "Free Plan" : "Pro Plan"}
 					</SizableText>
@@ -58,7 +73,10 @@ export function SubscriptionSection() {
 			</YStack>
 
 			{isFree && (
-				<Button theme="purple" onPress={() => console.log("Upgrade clicked")}>
+				<Button
+					theme="purple"
+					onPress={() => console.log("Upgrade clicked")}
+				>
 					Upgrade to Pro
 				</Button>
 			)}

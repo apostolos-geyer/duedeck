@@ -1,10 +1,12 @@
 "use client";
 
 import { SizableText, View, XStack, YStack } from "@repo/ui";
-import type { GroupMember } from "../../mock-data";
 
 interface MemberListProps {
-	members: GroupMember[];
+	members: Array<{
+		userId: string;
+		user: { name: string; image: string | null };
+	}>;
 }
 
 export function MemberList({ members }: MemberListProps) {
@@ -18,8 +20,7 @@ export function MemberList({ members }: MemberListProps) {
 			flexWrap="wrap"
 		>
 			{members.map((member) => (
-				<YStack key={member.id} items="center" gap="$1">
-					{/* Avatar with online indicator */}
+				<YStack key={member.userId} items="center" gap="$1">
 					<View position="relative">
 						<View
 							width={36}
@@ -30,23 +31,12 @@ export function MemberList({ members }: MemberListProps) {
 							justify="center"
 						>
 							<SizableText size="$2" color="white" fontWeight="600">
-								{member.name.charAt(0)}
+								{member.user.name.charAt(0)}
 							</SizableText>
 						</View>
-						{member.online && (
-							<View
-								width={8}
-								height={8}
-								rounded="$10"
-								bg="$green9"
-								position="absolute"
-								b={0}
-								r={0}
-							/>
-						)}
 					</View>
 					<SizableText size="$1" color="$color11">
-						{member.name.split(" ")[0]}
+						{member.user.name.split(" ")[0]}
 					</SizableText>
 				</YStack>
 			))}

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Input, SizableText, XStack, YStack } from "@repo/ui";
+import { Button, Input, SizableText, Spinner, XStack, YStack } from "@repo/ui";
 import { Send } from "@tamagui/lucide-icons";
-import { MOCK_MESSAGES, MOCK_USER } from "../../mock-data";
+import { useMessages, useSendMessage } from "../../hooks/use-study-buddies";
+import { useCurrentUser } from "../../hooks/use-settings";
 
 interface GroupChatProps {
 	groupId: string;
@@ -11,15 +12,30 @@ interface GroupChatProps {
 
 export function GroupChat({ groupId }: GroupChatProps) {
 	const [draft, setDraft] = useState("");
+	const { data: messages, isLoading } = useMessages(groupId);
+	const { data: user } = useCurrentUser();
+	const sendMessage = useSendMessage();
 
-	const messages = MOCK_MESSAGES.filter((m) => m.groupId === groupId);
+	function handleSend() {
+		if (!draft.trim()) return;
+		sendMessage.mutate({ groupId, content: draft });
+		setDraft("");
+	}
+
+	if (isLoading) {
+		return (
+			<YStack flex={1} items="center" justify="center" p="$4">
+				<Spinner size="small" />
+			</YStack>
+		);
+	}
 
 	return (
 		<YStack flex={1} height="100%">
 			{/* Messages area */}
 			<YStack flex={1} overflow="scroll" p="$3" gap="$2">
-				{messages.map((message) => {
-					const isOwn = message.senderId === MOCK_USER.id;
+				{(messages ?? []).map((message) => {
+					const isOwn = message.senderId === user?.id;
 
 					return (
 						<YStack
@@ -31,13 +47,13 @@ export function GroupChat({ groupId }: GroupChatProps) {
 							maxW="70%"
 						>
 							<SizableText size="$1" fontWeight="600" color="$color11">
-								{message.senderName}
+								{message.sender?.name ?? "Unknown"}
 							</SizableText>
 							<SizableText size="$3" color="$color12">
 								{message.content}
 							</SizableText>
 							<SizableText size="$1" color="$gray9">
-								{new Date(message.timestamp).toLocaleTimeString("en-US", {
+								{new Date(message.createdAt).toLocaleTimeString("en-US", {
 									hour: "numeric",
 									minute: "2-digit",
 								})}
@@ -55,7 +71,7 @@ export function GroupChat({ groupId }: GroupChatProps) {
 					value={draft}
 					onChangeText={setDraft}
 				/>
-				<Button theme="purple" icon={Send} onPress={() => setDraft("")} />
+				<Button theme="purple" icon={Send} onPress={handleSend} />
 			</XStack>
 		</YStack>
 	);

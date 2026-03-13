@@ -1,20 +1,41 @@
 "use client";
 
-import { H3, YStack } from "@repo/ui";
+import { H3, Spinner, YStack } from "@repo/ui";
 import { useAppForm } from "@repo/ui/form";
-import { MOCK_USER } from "../../mock-data";
+import { useCurrentUser, useUpdateProfile } from "../../hooks/use-settings";
 
 export function ProfileSection() {
+	const { data: user, isLoading } = useCurrentUser();
+	const updateProfile = useUpdateProfile();
+
+	if (isLoading || !user) {
+		return (
+			<YStack items="center" p="$4">
+				<Spinner size="small" />
+			</YStack>
+		);
+	}
+
+	return <ProfileForm user={user} onSubmit={(value) => updateProfile.mutate(value)} />;
+}
+
+function ProfileForm({
+	user,
+	onSubmit,
+}: {
+	user: { name: string; email: string; school: string | null; program: string | null; currentTerm: string | null };
+	onSubmit: (value: { name?: string; school?: string; program?: string; currentTerm?: string }) => void;
+}) {
 	const form = useAppForm({
 		defaultValues: {
-			name: MOCK_USER.name,
-			email: MOCK_USER.email,
-			school: MOCK_USER.school,
-			program: MOCK_USER.program,
-			currentTerm: MOCK_USER.currentTerm,
+			name: user.name,
+			email: user.email,
+			school: user.school ?? "",
+			program: user.program ?? "",
+			currentTerm: user.currentTerm ?? "",
 		},
 		onSubmit: async ({ value }) => {
-			console.log("Profile saved:", value);
+			onSubmit(value);
 		},
 	});
 

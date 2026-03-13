@@ -2,10 +2,15 @@
 
 import { SizableText, View, XStack, YStack } from "@repo/ui";
 import { GraduationCap, Users, BookOpen } from "@tamagui/lucide-icons";
-import type { School } from "../../mock-data";
 
 interface SchoolCardProps {
-	school: School;
+	school: {
+		id: string;
+		name: string;
+		shortName: string;
+		studentCount?: number;
+		courseCount?: number;
+	};
 	onPress: () => void;
 }
 
@@ -43,20 +48,26 @@ export function SchoolCard({ school, onPress }: SchoolCardProps) {
 				</YStack>
 			</XStack>
 
-			<XStack gap="$4">
-				<XStack gap="$1" items="center">
-					<Users size={14} color="$gray9" />
-					<SizableText size="$2" color="$gray10">
-						{school.studentCount.toLocaleString()} students
-					</SizableText>
+			{(school.studentCount != null || school.courseCount != null) && (
+				<XStack gap="$4">
+					{school.studentCount != null && (
+						<XStack gap="$1" items="center">
+							<Users size={14} color="$gray9" />
+							<SizableText size="$2" color="$gray10">
+								{school.studentCount.toLocaleString()} students
+							</SizableText>
+						</XStack>
+					)}
+					{school.courseCount != null && (
+						<XStack gap="$1" items="center">
+							<BookOpen size={14} color="$gray9" />
+							<SizableText size="$2" color="$gray10">
+								{school.courseCount} courses
+							</SizableText>
+						</XStack>
+					)}
 				</XStack>
-				<XStack gap="$1" items="center">
-					<BookOpen size={14} color="$gray9" />
-					<SizableText size="$2" color="$gray10">
-						{school.courseCount} courses
-					</SizableText>
-				</XStack>
-			</XStack>
+			)}
 		</YStack>
 	);
 }

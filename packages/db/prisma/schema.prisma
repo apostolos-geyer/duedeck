@@ -80,20 +80,21 @@ model Verification {
 }
 
 model Document {
-  id                  String        @id @default(uuid())
-  sectionId           String
+  id                  String         @id @default(uuid())
+  sectionId           String?
   filename            String
   s3Key               String
   contentHash         String
   parsedS3Key         String?
   uploadedById        String
-  status              String        @default("pending")
+  status              String         @default("pending")
   error               String?
-  uploadedAt          DateTime      @default(now())
-  parsedDeadlineCount Int           @default(0)
+  extractedData       Json?
+  uploadedAt          DateTime       @default(now())
+  parsedDeadlineCount Int            @default(0)
 
-  uploadedBy          User          @relation(fields: [uploadedById], references: [id])
-  section             CourseSection @relation(fields: [sectionId], references: [id])
+  uploadedBy          User           @relation(fields: [uploadedById], references: [id])
+  section             CourseSection? @relation(fields: [sectionId], references: [id])
 
   @@index([sectionId, contentHash])
   @@index([uploadedById])
@@ -106,6 +107,7 @@ model School {
   shortName String
   courses   Course[]
 
+  @@unique([shortName])
   @@map("school")
 }
 

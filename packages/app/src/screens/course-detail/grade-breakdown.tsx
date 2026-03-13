@@ -1,7 +1,11 @@
 "use client";
 
 import { H3, SizableText, View, XStack, YStack } from "@repo/ui";
-import type { GradeWeight } from "../../mock-data";
+
+interface GradeWeight {
+	label: string;
+	weight: number;
+}
 
 interface GradeBreakdownProps {
 	weights: GradeWeight[];

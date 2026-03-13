@@ -1,10 +1,27 @@
 "use client";
 
 import { SizableText, Theme, View, XStack } from "@repo/ui";
-import type { Deadline } from "../../mock-data";
 
-function getRelativeDate(dateStr: string): string {
-	const now = new Date("2026-03-12");
+type DeadlineType = "assignment" | "exam" | "quiz" | "project" | "lab";
+
+interface DeadlineCardProps {
+	deadline: {
+		id: string;
+		sectionId: string;
+		title: string;
+		dueDate: string | Date;
+		type: string;
+		weight: number;
+		completed: boolean;
+		section?: {
+			theme?: string;
+			course?: { code: string };
+		};
+	};
+}
+
+function getRelativeDate(dateStr: string | Date): string {
+	const now = new Date();
 	const due = new Date(dateStr);
 	const diffMs = due.getTime() - now.getTime();
 	const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
@@ -16,32 +33,29 @@ function getRelativeDate(dateStr: string): string {
 	return due.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function getTypeLabel(type: Deadline["type"]): string {
-	const labels: Record<Deadline["type"], string> = {
+function getTypeLabel(type: string): string {
+	const labels: Record<string, string> = {
 		assignment: "Assignment",
 		exam: "Exam",
 		quiz: "Quiz",
 		project: "Project",
 		lab: "Lab",
 	};
-	return labels[type];
+	return labels[type] ?? type;
 }
 
-function isUrgent(dateStr: string): boolean {
-	const now = new Date("2026-03-12");
+function isUrgent(dateStr: string | Date): boolean {
+	const now = new Date();
 	const due = new Date(dateStr);
 	const diffMs = due.getTime() - now.getTime();
 	const diffHours = diffMs / (1000 * 60 * 60);
 	return diffHours >= 0 && diffHours <= 48;
 }
 
-interface DeadlineCardProps {
-	deadline: Deadline;
-	courseTheme: string;
-}
-
-export function DeadlineCard({ deadline, courseTheme }: DeadlineCardProps) {
+export function DeadlineCard({ deadline }: DeadlineCardProps) {
 	const urgent = isUrgent(deadline.dueDate);
+	const courseCode = deadline.section?.course?.code ?? "";
+	const courseTheme = deadline.section?.theme ?? "gray";
 
 	return (
 		<Theme name={courseTheme as any}>
@@ -61,7 +75,7 @@ export function DeadlineCard({ deadline, courseTheme }: DeadlineCardProps) {
 				{/* Course code badge */}
 				<View bg="$color9" rounded="$2" px="$2" py="$1">
 					<SizableText size="$1" fontWeight="700" color="white">
-						{deadline.courseCode}
+						{courseCode}
 					</SizableText>
 				</View>
 
@@ -77,7 +91,14 @@ export function DeadlineCard({ deadline, courseTheme }: DeadlineCardProps) {
 				</SizableText>
 
 				{/* Type pill */}
-				<View bg="$gray4" rounded="$10" px="$2" py="$1" display="none" $sm={{ display: "flex" }}>
+				<View
+					bg="$gray4"
+					rounded="$10"
+					px="$2"
+					py="$1"
+					display="none"
+					$sm={{ display: "flex" }}
+				>
 					<SizableText size="$1" color="$gray11" fontWeight="500">
 						{getTypeLabel(deadline.type)}
 					</SizableText>
@@ -85,7 +106,12 @@ export function DeadlineCard({ deadline, courseTheme }: DeadlineCardProps) {
 
 				{/* Weight */}
 				<View minW={40} display="none" $sm={{ display: "flex" }}>
-					<SizableText size="$2" fontWeight="700" color="$gray10" text="right">
+					<SizableText
+						size="$2"
+						fontWeight="700"
+						color="$gray10"
+						text="right"
+					>
 						{deadline.weight}%
 					</SizableText>
 				</View>

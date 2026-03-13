@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, H3, SizableText, Switch, XStack, YStack } from "@repo/ui";
-import { MOCK_REMINDER_PREFERENCES } from "../../mock-data";
+import { Button, H3, SizableText, Spinner, Switch, XStack, YStack } from "@repo/ui";
+import { useReminderPreferences, useUpdateReminders } from "../../hooks/use-settings";
 
 const TIMING_OPTIONS = [
 	{ label: "1 hour", minutes: 60 },
@@ -11,20 +11,43 @@ const TIMING_OPTIONS = [
 ] as const;
 
 export function NotificationsSection() {
-	const pushPref = MOCK_REMINDER_PREFERENCES.find(
-		(p) => p.channel === "push",
-	);
-	const emailPref = MOCK_REMINDER_PREFERENCES.find(
-		(p) => p.channel === "email",
-	);
+	const { data: prefs, isLoading } = useReminderPreferences();
+	const updateReminders = useUpdateReminders();
+
+	const pushPref = prefs?.find((p) => p.channel === "push");
+	const emailPref = prefs?.find((p) => p.channel === "email");
 
 	const [pushEnabled, setPushEnabled] = useState(pushPref?.enabled ?? false);
-	const [emailEnabled, setEmailEnabled] = useState(
-		emailPref?.enabled ?? false,
-	);
+	const [emailEnabled, setEmailEnabled] = useState(emailPref?.enabled ?? false);
 	const [selectedTiming, setSelectedTiming] = useState(
 		pushPref?.offsetMinutes ?? 1440,
 	);
+
+	if (isLoading) {
+		return (
+			<YStack items="center" p="$4">
+				<Spinner size="small" />
+			</YStack>
+		);
+	}
+
+	function handleTogglePush(val: boolean) {
+		setPushEnabled(val);
+		updateReminders.mutate({
+			channel: "push",
+			enabled: val,
+			offsetMinutes: selectedTiming,
+		});
+	}
+
+	function handleToggleEmail(val: boolean) {
+		setEmailEnabled(val);
+		updateReminders.mutate({
+			channel: "email",
+			enabled: val,
+			offsetMinutes: selectedTiming,
+		});
+	}
 
 	return (
 		<YStack gap="$4">
@@ -37,7 +60,7 @@ export function NotificationsSection() {
 					<SizableText>Push Notifications</SizableText>
 					<Switch
 						checked={pushEnabled}
-						onCheckedChange={setPushEnabled}
+						onCheckedChange={handleTogglePush}
 						size="$4"
 					>
 						<Switch.Thumb transition="bouncy" />
@@ -48,7 +71,7 @@ export function NotificationsSection() {
 					<SizableText>Email Notifications</SizableText>
 					<Switch
 						checked={emailEnabled}
-						onCheckedChange={setEmailEnabled}
+						onCheckedChange={handleToggleEmail}
 						size="$4"
 					>
 						<Switch.Thumb transition="bouncy" />
@@ -62,10 +85,14 @@ export function NotificationsSection() {
 							<Button
 								key={option.minutes}
 								theme={
-									selectedTiming === option.minutes ? "purple" : undefined
+									selectedTiming === option.minutes
+										? "purple"
+										: undefined
 								}
 								variant={
-									selectedTiming === option.minutes ? undefined : "outlined"
+									selectedTiming === option.minutes
+										? undefined
+										: "outlined"
 								}
 								onPress={() => setSelectedTiming(option.minutes)}
 							>

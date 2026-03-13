@@ -1,24 +1,32 @@
 "use client";
 
 import { H3, SizableText, View, XStack, YStack } from "@repo/ui";
-import type { Deadline } from "../../mock-data";
+
+interface Deadline {
+	id: string;
+	title: string;
+	dueDate: string | Date;
+	type: string;
+	weight: number;
+	completed: boolean;
+}
 
 interface DeadlineTimelineProps {
 	deadlines: Deadline[];
 }
 
-function getTypeLabel(type: Deadline["type"]): string {
-	const labels: Record<Deadline["type"], string> = {
+function getTypeLabel(type: string): string {
+	const labels: Record<string, string> = {
 		assignment: "Assignment",
 		exam: "Exam",
 		quiz: "Quiz",
 		project: "Project",
 		lab: "Lab",
 	};
-	return labels[type];
+	return labels[type] ?? type;
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string | Date): string {
 	return new Date(dateStr).toLocaleDateString("en-US", {
 		weekday: "short",
 		month: "short",
@@ -26,9 +34,8 @@ function formatDate(dateStr: string): string {
 	});
 }
 
-function isPast(dateStr: string): boolean {
-	const now = new Date("2026-03-12");
-	return new Date(dateStr) < now;
+function isPast(dateStr: string | Date): boolean {
+	return new Date(dateStr) < new Date();
 }
 
 export function DeadlineTimeline({ deadlines }: DeadlineTimelineProps) {

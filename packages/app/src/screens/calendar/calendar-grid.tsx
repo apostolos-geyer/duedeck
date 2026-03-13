@@ -1,39 +1,43 @@
 "use client";
 
 import { SizableText, Theme, View, XStack, YStack } from "@repo/ui";
-import { MOCK_DEADLINES, MOCK_SECTIONS } from "../../mock-data";
-import type { CourseTheme } from "../../mock-data";
+
+interface DeadlineItem {
+	id: string;
+	dueDate: string | Date;
+	sectionId: string;
+	section?: {
+		theme?: string;
+	};
+}
 
 interface CalendarGridProps {
 	currentDate: Date;
+	deadlines: DeadlineItem[];
 }
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const TODAY = new Date("2026-03-12");
-
-export function CalendarGrid({ currentDate }: CalendarGridProps) {
+export function CalendarGrid({ currentDate, deadlines }: CalendarGridProps) {
+	const today = new Date();
 	const year = currentDate.getFullYear();
 	const month = currentDate.getMonth();
 	const firstDay = new Date(year, month, 1).getDay();
 	const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-	// Build a map of sectionId -> theme
-	const sectionThemeMap = new Map(MOCK_SECTIONS.map((s) => [s.id, s.theme]));
-
 	// Build a map of day number -> deadlines for this month
 	const deadlinesByDay = new Map<
 		number,
-		{ id: string; theme: CourseTheme }[]
+		{ id: string; theme: string }[]
 	>();
-	for (const dl of MOCK_DEADLINES) {
+	for (const dl of deadlines) {
 		const due = new Date(dl.dueDate);
 		if (due.getFullYear() === year && due.getMonth() === month) {
 			const day = due.getDate();
 			const existing = deadlinesByDay.get(day) ?? [];
 			existing.push({
 				id: dl.id,
-				theme: sectionThemeMap.get(dl.sectionId) ?? "gray" as any,
+				theme: dl.section?.theme ?? "gray",
 			});
 			deadlinesByDay.set(day, existing);
 		}
@@ -63,9 +67,9 @@ export function CalendarGrid({ currentDate }: CalendarGridProps) {
 	}
 
 	const isToday = (day: number) =>
-		day === TODAY.getDate() &&
-		month === TODAY.getMonth() &&
-		year === TODAY.getFullYear();
+		day === today.getDate() &&
+		month === today.getMonth() &&
+		year === today.getFullYear();
 
 	return (
 		<YStack gap="$1">
@@ -113,7 +117,7 @@ export function CalendarGrid({ currentDate }: CalendarGridProps) {
 									</SizableText>
 									<XStack gap="$1" flexWrap="wrap" mt="$1">
 										{(deadlinesByDay.get(day) ?? []).map((dl) => (
-											<Theme key={dl.id} name={dl.theme}>
+											<Theme key={dl.id} name={dl.theme as any}>
 												<View
 													width={6}
 													height={6}

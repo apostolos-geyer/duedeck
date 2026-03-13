@@ -1,26 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { Button, H3, SizableText, YStack } from "@repo/ui";
-import {
-	MOCK_CALENDAR_CONNECTIONS,
-	type CalendarConnection,
-} from "../../mock-data";
+import { Button, H3, SizableText, Spinner, YStack } from "@repo/ui";
+import { useCalendarConnections } from "../../hooks/use-calendar-data";
+import { useToggleCalendar } from "../../hooks/use-settings";
 
 function capitalize(str: string): string {
 	return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 export function CalendarsSection() {
-	const [connections, setConnections] = useState<CalendarConnection[]>(
-		MOCK_CALENDAR_CONNECTIONS,
-	);
+	const { data: connections, isLoading } = useCalendarConnections();
+	const toggleCalendar = useToggleCalendar();
 
-	function toggleConnection(provider: CalendarConnection["provider"]) {
-		setConnections((prev) =>
-			prev.map((c) =>
-				c.provider === provider ? { ...c, connected: !c.connected } : c,
-			),
+	if (isLoading) {
+		return (
+			<YStack items="center" p="$4">
+				<Spinner size="small" />
+			</YStack>
 		);
 	}
 
@@ -30,8 +26,11 @@ export function CalendarsSection() {
 				Connected Calendars
 			</H3>
 
-			<YStack gap="$3" $sm={{ flexDirection: "row", gap: "$4", flexWrap: "wrap" }}>
-				{connections.map((connection) => (
+			<YStack
+				gap="$3"
+				$sm={{ flexDirection: "row", gap: "$4", flexWrap: "wrap" }}
+			>
+				{(connections ?? []).map((connection) => (
 					<YStack
 						key={connection.provider}
 						bg="$gray2"
@@ -52,7 +51,12 @@ export function CalendarsSection() {
 						<Button
 							theme={connection.connected ? undefined : "purple"}
 							variant={connection.connected ? "outlined" : undefined}
-							onPress={() => toggleConnection(connection.provider)}
+							onPress={() =>
+								toggleCalendar.mutate({
+									provider: connection.provider,
+									connected: !connection.connected,
+								})
+							}
 						>
 							{connection.connected ? "Disconnect" : "Connect"}
 						</Button>

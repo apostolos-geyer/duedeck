@@ -10,6 +10,7 @@ export type ProgressStep =
 	| "dedup"
 	| "parsing"
 	| "extracting"
+	| "reviewing"
 	| "done";
 
 const STEP_ORDER: ProgressStep[] = [
@@ -17,6 +18,7 @@ const STEP_ORDER: ProgressStep[] = [
 	"dedup",
 	"parsing",
 	"extracting",
+	"reviewing",
 ];
 
 const STEP_LABELS: Record<ProgressStep, string> = {
@@ -25,6 +27,7 @@ const STEP_LABELS: Record<ProgressStep, string> = {
 	dedup: "Checking for duplicates",
 	parsing: "Parsing document",
 	extracting: "Extracting deadlines",
+	reviewing: "Awaiting your review",
 	done: "Done",
 };
 

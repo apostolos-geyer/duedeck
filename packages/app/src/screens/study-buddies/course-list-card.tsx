@@ -1,11 +1,16 @@
 "use client";
 
-import { SizableText, View, XStack, YStack } from "@repo/ui";
+import { SizableText, XStack, YStack } from "@repo/ui";
 import { Users, MessageCircle } from "@tamagui/lucide-icons";
-import type { BrowseCourse } from "../../mock-data";
 
 interface CourseListCardProps {
-	course: BrowseCourse;
+	course: {
+		id: string;
+		code: string;
+		name: string;
+		totalEnrollments?: number;
+		_count?: { studyGroups?: number };
+	};
 	onPress: () => void;
 }
 
@@ -32,18 +37,22 @@ export function CourseListCard({ course, onPress }: CourseListCardProps) {
 			</YStack>
 
 			<XStack gap="$4" items="center">
-				<XStack gap="$1" items="center">
-					<Users size={14} color="$gray9" />
-					<SizableText size="$2" color="$gray10">
-						{course.studentCount}
-					</SizableText>
-				</XStack>
-				<XStack gap="$1" items="center">
-					<MessageCircle size={14} color="$gray9" />
-					<SizableText size="$2" color="$gray10">
-						{course.groupCount} groups
-					</SizableText>
-				</XStack>
+				{course.totalEnrollments != null && (
+					<XStack gap="$1" items="center">
+						<Users size={14} color="$gray9" />
+						<SizableText size="$2" color="$gray10">
+							{course.totalEnrollments}
+						</SizableText>
+					</XStack>
+				)}
+				{course._count?.studyGroups != null && (
+					<XStack gap="$1" items="center">
+						<MessageCircle size={14} color="$gray9" />
+						<SizableText size="$2" color="$gray10">
+							{course._count.studyGroups} groups
+						</SizableText>
+					</XStack>
+				)}
 			</XStack>
 		</XStack>
 	);

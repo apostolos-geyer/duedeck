@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Button, H3, SizableText, XStack, YStack } from "@repo/ui";
+import { Button, H3, SizableText, Spinner, XStack, YStack } from "@repo/ui";
 import { ChevronRight } from "@tamagui/lucide-icons";
 import {
-	MOCK_SCHOOLS,
-	MOCK_BROWSE_COURSES,
-	MOCK_STUDY_GROUPS,
-} from "../../mock-data";
-import type { School, BrowseCourse } from "../../mock-data";
+	useSchools,
+	useBrowseCourses,
+	useStudyGroups,
+} from "../../hooks/use-study-buddies";
 import { SchoolCard } from "./school-card";
 import { CourseListCard } from "./course-list-card";
 import { GroupCard } from "./group-card";
@@ -17,10 +16,22 @@ import { MemberList } from "./member-list";
 
 type Level = "schools" | "courses" | "groups";
 
+interface SchoolInfo {
+	id: string;
+	name: string;
+	shortName: string;
+}
+
+interface CourseInfo {
+	id: string;
+	code: string;
+	name: string;
+}
+
 interface DrillState {
 	level: Level;
-	selectedSchool?: School;
-	selectedCourse?: BrowseCourse;
+	selectedSchool?: SchoolInfo;
+	selectedCourse?: CourseInfo;
 	selectedGroupId?: string;
 }
 
@@ -39,7 +50,9 @@ function Breadcrumb({
 				fontWeight={state.level === "schools" ? "700" : "500"}
 				cursor={state.level !== "schools" ? "pointer" : undefined}
 				onPress={() => onNavigate("schools")}
-				hoverStyle={state.level !== "schools" ? { opacity: 0.7 } : undefined}
+				hoverStyle={
+					state.level !== "schools" ? { opacity: 0.7 } : undefined
+				}
 			>
 				Schools
 			</SizableText>
@@ -53,7 +66,9 @@ function Breadcrumb({
 						fontWeight={state.level === "courses" ? "700" : "500"}
 						cursor={state.level === "groups" ? "pointer" : undefined}
 						onPress={() => onNavigate("courses")}
-						hoverStyle={state.level === "groups" ? { opacity: 0.7 } : undefined}
+						hoverStyle={
+							state.level === "groups" ? { opacity: 0.7 } : undefined
+						}
 					>
 						{state.selectedSchool.shortName}
 					</SizableText>
@@ -72,14 +87,136 @@ function Breadcrumb({
 	);
 }
 
+function SchoolsList({
+	onSelect,
+}: {
+	onSelect: (school: SchoolInfo) => void;
+}) {
+	const { data: schools, isLoading } = useSchools();
+
+	if (isLoading) {
+		return (
+			<YStack items="center" py="$6">
+				<Spinner size="small" />
+			</YStack>
+		);
+	}
+
+	return (
+		<YStack
+			gap="$3"
+			$sm={{ flexDirection: "row", gap: "$4", flexWrap: "wrap" }}
+		>
+			{(schools ?? []).map((school) => (
+				<SchoolCard
+					key={school.id}
+					school={school}
+					onPress={() => onSelect(school)}
+				/>
+			))}
+		</YStack>
+	);
+}
+
+function CoursesList({
+	schoolId,
+	schoolName,
+	onSelect,
+}: {
+	schoolId: string;
+	schoolName: string;
+	onSelect: (course: CourseInfo) => void;
+}) {
+	const { data: courses, isLoading } = useBrowseCourses(schoolId);
+
+	if (isLoading) {
+		return (
+			<YStack items="center" py="$6">
+				<Spinner size="small" />
+			</YStack>
+		);
+	}
+
+	return (
+		<YStack gap="$3">
+			<SizableText size="$4" color="$gray10">
+				Courses at {schoolName}
+			</SizableText>
+			{(courses ?? []).map((course) => (
+				<CourseListCard
+					key={course.id}
+					course={course}
+					onPress={() => onSelect(course)}
+				/>
+			))}
+		</YStack>
+	);
+}
+
+function GroupsList({
+	courseId,
+	courseCode,
+	selectedGroupId,
+	onSelectGroup,
+}: {
+	courseId: string;
+	courseCode: string;
+	selectedGroupId?: string;
+	onSelectGroup: (groupId: string) => void;
+}) {
+	const { data: groups, isLoading } = useStudyGroups(courseId);
+
+	if (isLoading) {
+		return (
+			<YStack items="center" py="$6">
+				<Spinner size="small" />
+			</YStack>
+		);
+	}
+
+	const selectedGroup = (groups ?? []).find(
+		(g) => g.id === selectedGroupId,
+	);
+
+	return (
+		<YStack gap="$4" flex={1} $md={{ flexDirection: "row", gap: "$5" }}>
+			{/* Left panel: groups */}
+			<YStack flex={1} minW={0} $md={{ minW: 280 }} gap="$3">
+				<SizableText size="$3" color="$gray10">
+					Study groups for {courseCode}
+				</SizableText>
+				{(groups ?? []).map((group) => (
+					<GroupCard
+						key={group.id}
+						group={group}
+						selected={group.id === selectedGroupId}
+						onSelect={() => onSelectGroup(group.id)}
+					/>
+				))}
+				<Button theme="purple" onPress={() => {}}>
+					Create Group
+				</Button>
+			</YStack>
+
+			{/* Right panel: chat */}
+			{selectedGroupId && selectedGroup && (
+				<YStack flex={2} gap="$0">
+					<MemberList members={selectedGroup.members} />
+					<GroupChat groupId={selectedGroupId} />
+				</YStack>
+			)}
+		</YStack>
+	);
+}
+
 export function StudyBuddiesScreen() {
 	const [state, setState] = useState<DrillState>({ level: "schools" });
 
-	function handleSelectSchool(school: School) {
+	function handleSelectSchool(school: SchoolInfo) {
 		setState({ level: "courses", selectedSchool: school });
 	}
 
-	function handleSelectCourse(course: BrowseCourse) {
+	function handleSelectCourse(course: CourseInfo) {
 		setState((prev) => ({
 			...prev,
 			level: "groups",
@@ -98,10 +235,6 @@ export function StudyBuddiesScreen() {
 		}
 	}
 
-	const selectedGroup = MOCK_STUDY_GROUPS.find(
-		(g) => g.id === state.selectedGroupId,
-	);
-
 	return (
 		<YStack gap="$4" maxW="$container.full" width="100%" height="100%">
 			<H3 fontWeight="800" color="$color12">
@@ -112,73 +245,27 @@ export function StudyBuddiesScreen() {
 				<Breadcrumb state={state} onNavigate={handleNavigate} />
 			)}
 
-			{/* Level 1: Schools */}
 			{state.level === "schools" && (
-				<YStack gap="$3" $sm={{ flexDirection: "row", gap: "$4", flexWrap: "wrap" }}>
-					{MOCK_SCHOOLS.map((school) => (
-						<SchoolCard
-							key={school.id}
-							school={school}
-							onPress={() => handleSelectSchool(school)}
-						/>
-					))}
-				</YStack>
+				<SchoolsList onSelect={handleSelectSchool} />
 			)}
 
-			{/* Level 2: Courses at School */}
 			{state.level === "courses" && state.selectedSchool && (
-				<YStack gap="$3">
-					<SizableText size="$4" color="$gray10">
-						Courses at {state.selectedSchool.name}
-					</SizableText>
-					{MOCK_BROWSE_COURSES.filter(
-						(c) => c.schoolId === state.selectedSchool!.id,
-					).map((course) => (
-						<CourseListCard
-							key={course.id}
-							course={course}
-							onPress={() => handleSelectCourse(course)}
-						/>
-					))}
-				</YStack>
+				<CoursesList
+					schoolId={state.selectedSchool.id}
+					schoolName={state.selectedSchool.name}
+					onSelect={handleSelectCourse}
+				/>
 			)}
 
-			{/* Level 3: Groups for Course */}
 			{state.level === "groups" && state.selectedCourse && (
-				<YStack gap="$4" flex={1} $md={{ flexDirection: "row", gap: "$5" }}>
-					{/* Left panel: groups */}
-					<YStack flex={1} minW={0} $md={{ minW: 280 }} gap="$3">
-						<SizableText size="$3" color="$gray10">
-							Study groups for {state.selectedCourse.code}
-						</SizableText>
-						{MOCK_STUDY_GROUPS.filter(
-							(g) => g.courseCode === state.selectedCourse!.code,
-						).map((group) => (
-							<GroupCard
-								key={group.id}
-								group={group}
-								selected={group.id === state.selectedGroupId}
-								onSelect={() =>
-									setState((prev) => ({
-										...prev,
-										selectedGroupId: group.id,
-									}))
-								}
-							/>
-						))}
-						<Button theme="purple" onPress={() => {}}>
-							Create Group
-						</Button>
-					</YStack>
-
-					{/* Right panel: chat */}
-					{state.selectedGroupId && selectedGroup && (
-						<YStack flex={2} gap="$0">
-							<MemberList members={selectedGroup.members} />
-							<GroupChat groupId={state.selectedGroupId} />
-						</YStack>
-					)}
-				</YStack>
+				<GroupsList
+					courseId={state.selectedCourse.id}
+					courseCode={state.selectedCourse.code}
+					selectedGroupId={state.selectedGroupId}
+					onSelectGroup={(groupId) =>
+						setState((prev) => ({ ...prev, selectedGroupId: groupId }))
+					}
+				/>
 			)}
 		</YStack>
 	);

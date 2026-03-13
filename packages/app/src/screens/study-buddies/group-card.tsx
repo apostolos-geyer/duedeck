@@ -1,15 +1,25 @@
 "use client";
 
 import { SizableText, View, XStack, YStack } from "@repo/ui";
-import type { StudyGroup } from "../../mock-data";
 
 interface GroupCardProps {
-	group: StudyGroup;
+	group: {
+		id: string;
+		name: string;
+		maxMembers: number;
+		members: Array<{
+			userId: string;
+			user: { name: string; image: string | null };
+		}>;
+		_count?: { members: number };
+	};
 	selected: boolean;
 	onSelect: () => void;
 }
 
 export function GroupCard({ group, selected, onSelect }: GroupCardProps) {
+	const memberCount = group._count?.members ?? group.members.length;
+
 	return (
 		<YStack
 			bg={selected ? "$purple2" : "$gray2"}
@@ -26,17 +36,12 @@ export function GroupCard({ group, selected, onSelect }: GroupCardProps) {
 				{group.name}
 			</SizableText>
 
-			{/* Course code */}
-			<SizableText size="$2" color="$gray10">
-				{group.courseCode}
-			</SizableText>
-
 			{/* Member count + avatars */}
 			<XStack items="center" gap="$2">
 				<XStack>
 					{group.members.map((member, index) => (
 						<View
-							key={member.id}
+							key={member.userId}
 							width={24}
 							height={24}
 							rounded="$10"
@@ -46,13 +51,13 @@ export function GroupCard({ group, selected, onSelect }: GroupCardProps) {
 							ml={index > 0 ? "$-1" : undefined}
 						>
 							<SizableText size="$1" color="white" fontWeight="600">
-								{member.name.charAt(0)}
+								{member.user.name.charAt(0)}
 							</SizableText>
 						</View>
 					))}
 				</XStack>
 				<SizableText size="$2" color="$gray9">
-					{group.members.length}/{group.maxMembers} members
+					{memberCount}/{group.maxMembers} members
 				</SizableText>
 			</XStack>
 		</YStack>

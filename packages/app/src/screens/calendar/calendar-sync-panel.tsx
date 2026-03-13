@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, H4, SizableText, YStack } from "@repo/ui";
+import { Button, H4, SizableText, Spinner, YStack } from "@repo/ui";
 import { Download } from "@tamagui/lucide-icons";
-import { MOCK_CALENDAR_CONNECTIONS } from "../../mock-data";
+import { useCalendarConnections } from "../../hooks/use-calendar-data";
 
 const PROVIDER_LABELS: Record<string, string> = {
 	google: "Google Calendar",
@@ -11,14 +11,28 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 export function CalendarSyncPanel() {
+	const { data: connections, isLoading } = useCalendarConnections();
+
+	if (isLoading) {
+		return (
+			<YStack items="center" p="$4">
+				<Spinner size="small" />
+			</YStack>
+		);
+	}
+
 	return (
 		<YStack gap="$3">
 			<H4 fontWeight="800" color="$color12">
 				Calendar Sync
 			</H4>
 
-			<YStack gap="$3" $sm={{ flexDirection: "row", gap: "$4" }} flexWrap="wrap">
-				{MOCK_CALENDAR_CONNECTIONS.map((conn) => (
+			<YStack
+				gap="$3"
+				$sm={{ flexDirection: "row", gap: "$4" }}
+				flexWrap="wrap"
+			>
+				{(connections ?? []).map((conn) => (
 					<YStack
 						key={conn.provider}
 						bg="$gray2"

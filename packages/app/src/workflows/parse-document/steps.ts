@@ -3,7 +3,9 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { createHash } from "node:crypto";
 import { s3, UPLOADS_BUCKET } from "@repo/storage";
 import { prisma } from "@repo/db";
+import type { Prisma } from "@repo/db";
 import { parseParsePost } from "@repo/hermes";
+import type { SyllabusExtraction } from "./extraction-schema";
 
 export type ProgressEvent = {
 	step:
@@ -12,6 +14,7 @@ export type ProgressEvent = {
 		| "dedup"
 		| "parsing"
 		| "extracting"
+		| "reviewing"
 		| "done";
 	status: "start" | "done";
 	data?: Record<string, unknown>;
@@ -37,23 +40,47 @@ export async function computeContentHash(s3Key: string): Promise<string> {
 	return createHash("sha256").update(bytes).digest("hex");
 }
 
+export interface ExistingDocInfo {
+	id: string;
+	status: string;
+	parsedS3Key: string | null;
+	sectionId: string | null;
+}
+
 export async function checkDuplicate(
-	sectionId: string,
 	contentHash: string,
+	sectionId?: string,
+	uploadedById?: string,
 ): Promise<{
-	isDuplicate: boolean;
-	existingDoc: { parsedS3Key: string | null } | null;
+	existingDoc: ExistingDocInfo | null;
 }> {
 	"use step";
+	const where: Prisma.DocumentWhereInput = { contentHash };
+	if (sectionId) {
+		where.sectionId = sectionId;
+	} else if (uploadedById) {
+		where.uploadedById = uploadedById;
+	}
 	const existing = await prisma.document.findFirst({
-		where: { sectionId, contentHash, status: "completed" },
-		select: { parsedS3Key: true },
+		where,
+		select: {
+			id: true,
+			status: true,
+			parsedS3Key: true,
+			sectionId: true,
+		},
+		orderBy: { uploadedAt: "desc" },
 	});
-	return { isDuplicate: !!existing, existingDoc: existing };
+	return { existingDoc: existing };
+}
+
+export async function deleteDocument(docId: string) {
+	"use step";
+	await prisma.document.delete({ where: { id: docId } });
 }
 
 export async function createDocumentRecord(data: {
-	sectionId: string;
+	sectionId?: string;
 	filename: string;
 	s3Key: string;
 	contentHash: string;
@@ -62,7 +89,12 @@ export async function createDocumentRecord(data: {
 	parsedS3Key?: string;
 }): Promise<string> {
 	"use step";
-	const doc = await prisma.document.create({ data });
+	const doc = await prisma.document.create({
+		data: {
+			...data,
+			sectionId: data.sectionId ?? null,
+		},
+	});
 	return doc.id;
 }
 
@@ -97,6 +129,151 @@ export async function handleParseCallback(
 		},
 	});
 	return { parsedS3Key: body.output_s3_key ?? "", status: newStatus };
+}
+
+export async function saveExtractionAndPause(
+	docId: string,
+	extraction: SyllabusExtraction,
+) {
+	"use step";
+	await prisma.document.update({
+		where: { id: docId },
+		data: {
+			extractedData: extraction as unknown as Prisma.InputJsonValue,
+			status: "awaiting_review",
+		},
+	});
+}
+
+export async function commitExtractedData(
+	docId: string,
+	extraction: {
+		courseInfo: {
+			schoolName: string;
+			schoolShortName: string;
+			courseCode: string;
+			courseName: string;
+			section: string;
+			term: string;
+			instructor: string;
+		};
+		deadlines: Array<{
+			title: string;
+			dueDate: string;
+			type: string;
+			weight: number;
+		}>;
+		gradeWeights: Array<{
+			label: string;
+			type: string;
+			weight: number;
+		}>;
+	},
+	uploadedById: string,
+) {
+	"use step";
+	const { courseInfo, deadlines, gradeWeights } = extraction;
+
+	await prisma.$transaction(async (tx) => {
+		// Upsert school
+		const school = await tx.school.upsert({
+			where: { shortName: courseInfo.schoolShortName },
+			create: {
+				name: courseInfo.schoolName,
+				shortName: courseInfo.schoolShortName,
+			},
+			update: {},
+		});
+
+		// Upsert course
+		const course = await tx.course.upsert({
+			where: {
+				schoolId_code: {
+					schoolId: school.id,
+					code: courseInfo.courseCode,
+				},
+			},
+			create: {
+				schoolId: school.id,
+				code: courseInfo.courseCode,
+				name: courseInfo.courseName,
+			},
+			update: {},
+		});
+
+		// Upsert section
+		const section = await tx.courseSection.upsert({
+			where: {
+				courseId_term_section: {
+					courseId: course.id,
+					term: courseInfo.term,
+					section: courseInfo.section,
+				},
+			},
+			create: {
+				courseId: course.id,
+				term: courseInfo.term,
+				section: courseInfo.section,
+				instructor: courseInfo.instructor,
+			},
+			update: {},
+		});
+
+		// Create deadlines
+		if (deadlines.length > 0) {
+			await tx.deadline.createMany({
+				data: deadlines.map((d) => ({
+					sectionId: section.id,
+					title: d.title,
+					dueDate: new Date(d.dueDate),
+					type: d.type,
+					weight: d.weight,
+				})),
+			});
+		}
+
+		// Create grade weights
+		if (gradeWeights.length > 0) {
+			await tx.gradeWeight.createMany({
+				data: gradeWeights.map((g) => ({
+					sectionId: section.id,
+					label: g.label,
+					type: g.type,
+					weight: g.weight,
+				})),
+			});
+		}
+
+		// Upsert enrollment
+		await tx.enrollment.upsert({
+			where: {
+				userId_sectionId: {
+					userId: uploadedById,
+					sectionId: section.id,
+				},
+			},
+			create: { userId: uploadedById, sectionId: section.id },
+			update: {},
+		});
+
+		// Link document to section and mark confirmed
+		await tx.document.update({
+			where: { id: docId },
+			data: {
+				sectionId: section.id,
+				status: "confirmed",
+				parsedDeadlineCount: deadlines.length,
+			},
+		});
+	});
+}
+
+export async function cancelDocument(docId: string) {
+	"use step";
+	await prisma.document.update({
+		where: { id: docId },
+		data: { status: "cancelled" },
+	});
 }
 
 export async function closeStream() {

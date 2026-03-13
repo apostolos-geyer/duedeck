@@ -1,10 +1,9 @@
 "use client";
 
 import { createContext, useContext } from "react";
+import type { createRpc } from "./client";
 
-// Use a generic type to avoid tight coupling to specific router type
-// biome-ignore lint: any is needed for the context type
-type OrpcUtils = any;
+type OrpcUtils = ReturnType<typeof createRpc>["orpc"];
 
 const OrpcContext = createContext<OrpcUtils | null>(null);
 
