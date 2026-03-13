@@ -1,54 +1,54 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import { UploadScreen } from "@repo/app/screens/upload";
-import { rpc } from "@/lib/rpc-client";
+import { orpc } from "@/lib/rpc-client";
 
 export default function UploadPage() {
 	const router = useRouter();
-	const [uploading, setUploading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+
+	const presign = useMutation(orpc.uploads.presign.mutationOptions());
+
+	const s3Upload = useMutation({
+		mutationFn: async ({ url, file }: { url: string; file: File }) => {
+			const res = await fetch(url, {
+				method: "PUT",
+				body: file,
+				headers: { "Content-Type": file.type || "application/pdf" },
+			});
+			if (!res.ok) throw new Error(`S3 upload failed: ${res.status}`);
+		},
+	});
+
+	const startDoc = useMutation(orpc.documents.start.mutationOptions());
+
+	const error = presign.error ?? s3Upload.error ?? startDoc.error;
+	const uploading = presign.isPending || s3Upload.isPending || startDoc.isPending;
 
 	const handleUpload = useCallback(
 		async (input: { file: File; sectionId: string }) => {
-			setUploading(true);
-			setError(null);
+			presign.reset();
+			s3Upload.reset();
+			startDoc.reset();
 
-			try {
-				// 1. Presign
-				const { url, key } = await rpc.uploads.presign({
-					filename: input.file.name,
-					contentType: input.file.type || "application/pdf",
-				});
+			const { url, key } = await presign.mutateAsync({
+				filename: input.file.name,
+				contentType: input.file.type || "application/pdf",
+			});
 
-				// 2. Upload to S3
-				const putRes = await fetch(url, {
-					method: "PUT",
-					body: input.file,
-					headers: { "Content-Type": input.file.type || "application/pdf" },
-				});
+			await s3Upload.mutateAsync({ url, file: input.file });
 
-				if (!putRes.ok) {
-					throw new Error(`S3 upload failed: ${putRes.status}`);
-				}
+			const { runId } = await startDoc.mutateAsync({
+				s3Key: key,
+				sectionId: input.sectionId,
+				filename: input.file.name,
+			});
 
-				// 3. Start the workflow
-				const { runId } = await rpc.documents.start({
-					s3Key: key,
-					sectionId: input.sectionId,
-					filename: input.file.name,
-				});
-
-				// 4. Redirect to the processing page
-				router.push(`/upload/${runId}`);
-			} catch (err) {
-				console.error("[upload] failed:", err);
-				setError(err instanceof Error ? err.message : "Upload failed");
-				setUploading(false);
-			}
+			router.push(`/upload/${runId}`);
 		},
-		[router],
+		[router, presign, s3Upload, startDoc],
 	);
 
 	return (
@@ -56,7 +56,7 @@ export default function UploadPage() {
 			onNavigateCourse={(courseId) => router.push(`/course/${courseId}`)}
 			onUpload={handleUpload}
 			uploading={uploading}
-			uploadError={error}
+			uploadError={error?.message ?? null}
 		/>
 	);
 }

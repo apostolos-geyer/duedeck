@@ -4,12 +4,26 @@
   "private": true,
   "exports": {
     "./screens/*": "./src/screens/*/index.ts",
-    "./mock-data": "./src/mock-data.ts"
+    "./mock-data": "./src/mock-data.ts",
+    "./rpc/server": "./src/rpc/router.ts",
+    "./rpc/client": "./src/rpc/client.ts",
+    "./rpc/query-provider": "./src/rpc/query-provider.tsx",
+    "./workflows/*": "./src/workflows/*/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@orpc/client": "latest",
+    "@orpc/server": "latest",
+    "@orpc/tanstack-query": "latest",
+    "@repo/db": "workspace:*",
+    "@repo/hermes": "workspace:*",
+    "@repo/storage": "workspace:*",
     "@repo/ui": "*",
     "@tamagui/lucide-icons": "^2.0.0-rc.25",
-    "react": "^19.2.0"
+    "@tanstack/react-query": "^5.90.0",
+    "arktype": "^2.2.0",
+    "react": "^19.2.0",
+    "workflow": "^4.2.0-beta.69"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",

@@ -12,11 +12,13 @@
   "dependencies": {
     "@orpc/client": "latest",
     "@orpc/server": "latest",
+    "@orpc/tanstack-query": "^1.13.6",
     "@repo/auth": "workspace:*",
     "@repo/db": "workspace:*",
     "@repo/hermes": "workspace:*",
     "@repo/storage": "workspace:*",
     "@repo/ui": "*",
+    "@tanstack/react-query": "^5.90.21",
     "arktype": "^2.2.0",
     "better-auth": "^1.0.0",
     "next": "16.1.5",

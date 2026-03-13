@@ -1,9 +1,10 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { ProcessingSteps, type ProgressEvent } from "@repo/app/screens/upload";
-import { rpc } from "@/lib/rpc-client";
+import { orpc } from "@/lib/rpc-client";
 import { H2, SizableText, YStack, Button } from "@repo/ui";
 
 export default function ProcessingPage({
@@ -13,40 +14,15 @@ export default function ProcessingPage({
 }) {
 	const { runId } = use(params);
 	const router = useRouter();
-	const [error, setError] = useState<string | null>(null);
-	const [completionData, setCompletionData] = useState<Record<string, unknown> | null>(null);
 
-	const [events, setEvents] = useState<ProgressEvent[]>([]);
+	const { data, error } = useQuery(
+		orpc.documents.stream.experimental_streamedOptions({
+			input: { runId },
+			retry: false,
+		}),
+	);
 
-	useEffect(() => {
-		let cancelled = false;
-
-		(async () => {
-			try {
-				const stream = await rpc.documents.stream({ runId });
-
-				for await (const event of stream) {
-					if (cancelled) break;
-					const evt = event as ProgressEvent;
-					setEvents((prev) => [...prev, evt]);
-
-					if (evt.step === "done" && evt.status === "done") {
-						setCompletionData(evt.data ?? null);
-					}
-				}
-			} catch (err) {
-				if (!cancelled) {
-					console.error("[processing] stream error:", err);
-					setError(err instanceof Error ? err.message : "Processing failed");
-				}
-			}
-		})();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [runId]);
-
+	const events = (data ?? []) as ProgressEvent[];
 	const handleComplete = useCallback(
 		(data?: Record<string, unknown>) => {
 			if (data?.deduplicated) {
@@ -71,16 +47,13 @@ export default function ProcessingPage({
 
 			{error ? (
 				<YStack gap="$3">
-					<SizableText color="$red9">{error}</SizableText>
+					<SizableText color="$red9">{error.message}</SizableText>
 					<Button theme="gray" onPress={() => router.push("/upload")}>
 						Try Again
 					</Button>
 				</YStack>
 			) : (
-				<ProcessingSteps
-					events={events}
-					onComplete={handleComplete}
-				/>
+				<ProcessingSteps events={events} onComplete={handleComplete} />
 			)}
 		</YStack>
 	);
