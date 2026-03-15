@@ -15,11 +15,16 @@ export function useCourseDetail(sectionId: string) {
 	const gradeWeights = useQuery(
 		orpc.gradeWeights.list.queryOptions({ input: { sectionId } }),
 	);
+	const enrolled = useQuery(orpc.sections.enrolled.queryOptions({}));
+
+	const isEnrolled =
+		enrolled.data?.some((s) => s.id === sectionId) ?? false;
 
 	return {
 		section,
 		deadlines,
 		gradeWeights,
+		isEnrolled,
 		isLoading:
 			section.isLoading || deadlines.isLoading || gradeWeights.isLoading,
 	};

@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { ORPCError, os } from "@orpc/server";
 import { prisma } from "@repo/db";
-import { createPresignedUpload } from "@repo/storage";
+import { createPresignedUpload, createPresignedGet } from "@repo/storage";
 import { type } from "arktype";
 import { start, getRun, resumeHook } from "workflow/api";
 import {
 	parseDocumentWorkflow,
 	type ProgressEvent,
 } from "../workflows/parse-document";
-import { syllabusExtractionSchema } from "../workflows/parse-document/extraction-schema";
+import {
+	syllabusExtractionSchema,
+} from "../workflows/parse-document/extraction-schema";
 
 export type { ProgressEvent };
 
@@ -50,6 +52,12 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 			});
 
 			return result;
+		});
+
+	const presignedGet = base
+		.input(type({ key: "string" }))
+		.handler(async ({ input }) => {
+			return createPresignedGet({ key: input.key });
 		});
 
 	// ── documents ────────────────────────────────────────────
@@ -213,9 +221,13 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 	const sectionGet = base
 		.input(type({ sectionId: "string" }))
 		.handler(async ({ input }) => {
-			return prisma.courseSection.findUniqueOrThrow({
+			return prisma.courseSection.findUnique({
 				where: { id: input.sectionId },
-				include: { course: true },
+				include: {
+					course: { include: { school: true } },
+					deadlines: true,
+					gradeWeights: true,
+				},
 			});
 		});
 
@@ -478,6 +490,7 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 	return {
 		uploads: {
 			presign: presignedUpload,
+			presignGet: presignedGet,
 		},
 		documents: {
 			get: getDocument,

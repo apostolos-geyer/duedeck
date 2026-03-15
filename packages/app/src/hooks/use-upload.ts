@@ -30,6 +30,11 @@ export function usePresign() {
 	return useMutation(orpc.uploads.presign.mutationOptions());
 }
 
+export function usePresignGet() {
+	const orpc = useOrpc();
+	return useMutation(orpc.uploads.presignGet.mutationOptions());
+}
+
 export function useStartDocument() {
 	const orpc = useOrpc();
 	return useMutation(orpc.documents.start.mutationOptions());
@@ -44,3 +49,4 @@ export function useCancelDocument() {
 	const orpc = useOrpc();
 	return useMutation(orpc.documents.cancel.mutationOptions());
 }
+
