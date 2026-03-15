@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
 	Button,
 	H2,
@@ -13,8 +14,13 @@ import {
 } from "@repo/ui";
 import { BookOpen, FileText, GraduationCap } from "@tamagui/lucide-icons";
 import { useDocument } from "../../hooks/use-upload";
+import { useEnroll } from "../../hooks/use-enrollment";
 import { useAppRouter } from "../../hooks/use-app-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { TYPE_THEME, type ColorTheme } from "../../lib/deadline-theme";
+import { PdfViewer, MarkdownViewer } from "../upload";
+
+type DocTab = "data" | "pdf" | "markdown";
 
 const STATUS_CONFIG: Record<string, { label: string; theme: ColorTheme }> = {
 	confirmed: { label: "Confirmed", theme: "green" },
@@ -31,7 +37,10 @@ interface DocumentDetailScreenProps {
 
 export function DocumentDetailScreen({ docId }: DocumentDetailScreenProps) {
 	const router = useAppRouter();
+	const queryClient = useQueryClient();
 	const { data: doc, isLoading, error } = useDocument(docId);
+	const enroll = useEnroll();
+	const [activeTab, setActiveTab] = useState<DocTab>("data");
 
 	if (isLoading) {
 		return (
@@ -62,6 +71,7 @@ export function DocumentDetailScreen({ docId }: DocumentDetailScreenProps) {
 	const school = course?.school;
 	const deadlines = section?.deadlines ?? [];
 	const gradeWeights = section?.gradeWeights ?? [];
+	const isEnrolled = (section?.enrollments?.length ?? 0) > 0;
 	const statusInfo = STATUS_CONFIG[doc.status] ?? {
 		label: doc.status,
 		theme: "gray" as ColorTheme,
@@ -91,160 +101,217 @@ export function DocumentDetailScreen({ docId }: DocumentDetailScreenProps) {
 				</XStack>
 			</YStack>
 
-			{/* Course info */}
-			{section && course && (
-				<XStack gap="$3" items="center" bg="$purple3" rounded="$4" p="$4">
-					<View bg="$purple5" rounded="$4" p="$2">
-						<BookOpen size={22} color="$purple11" />
-					</View>
-					<YStack flex={1}>
-						<SizableText size="$5" fontWeight="700" color="$purple11">
-							{course.code}
-						</SizableText>
-						<SizableText size="$3" color="$purple10">
-							{course.name}
-						</SizableText>
-						<SizableText size="$2" color="$purple9">
-							{school?.name} &middot; {section.section} &middot;{" "}
-							{section.term} &middot; {section.instructor}
-						</SizableText>
-					</YStack>
-				</XStack>
+			{/* Tab switcher */}
+			<XStack gap="$2">
+				<Button
+					size="$3"
+					theme={activeTab === "data" ? "purple" : "gray"}
+					onPress={() => setActiveTab("data")}
+				>
+					Data
+				</Button>
+				<Button
+					size="$3"
+					theme={activeTab === "pdf" ? "purple" : "gray"}
+					onPress={() => setActiveTab("pdf")}
+				>
+					PDF
+				</Button>
+				{doc.parsedS3Key && (
+					<Button
+						size="$3"
+						theme={activeTab === "markdown" ? "purple" : "gray"}
+						onPress={() => setActiveTab("markdown")}
+					>
+						Markdown
+					</Button>
+				)}
+			</XStack>
+
+			{/* Tab content */}
+			{activeTab === "pdf" && (
+				<PdfViewer s3Key={doc.s3Key} />
 			)}
 
-			{/* Deadlines */}
-			{deadlines.length > 0 && (
-				<YStack gap="$2">
-					<H4 fontWeight="800" color="$color12">
-						Deadlines ({deadlines.length})
-					</H4>
-					<YStack gap="$2" bg="$gray2" rounded="$4" p="$4">
-						{deadlines.map((deadline, index) => (
-							<XStack
-								key={deadline.id}
-								items="center"
-								gap="$3"
-								py="$2"
-								borderBottomWidth={
-									index < deadlines.length - 1 ? 1 : 0
-								}
-								borderBottomColor="$gray4"
-							>
-								<SizableText
-									flex={1}
-									size="$3"
-									fontWeight="600"
-									color="$color12"
-								>
-									{deadline.title}
-								</SizableText>
-
-								<View minW={100}>
-									<SizableText size="$2" color="$gray10">
-										{new Date(deadline.dueDate).toLocaleDateString()}
-									</SizableText>
-								</View>
-
-								<Theme
-									name={
-										TYPE_THEME[deadline.type] ?? TYPE_THEME.other
-									}
-								>
-									<View bg="$color4" rounded="$10" px="$2" py="$1">
-										<SizableText
-											size="$1"
-											fontWeight="500"
-											color="$color11"
-										>
-											{deadline.type}
-										</SizableText>
-									</View>
-								</Theme>
-
-								<View minW={50}>
-									<SizableText
-										size="$2"
-										fontWeight="700"
-										color="$gray10"
-										text="right"
-									>
-										{deadline.weight}%
-									</SizableText>
-								</View>
-							</XStack>
-						))}
-					</YStack>
-				</YStack>
+			{activeTab === "markdown" && doc.parsedS3Key && (
+				<MarkdownViewer s3Key={doc.parsedS3Key} />
 			)}
 
-			{/* Grade weights */}
-			{gradeWeights.length > 0 && (
-				<YStack gap="$2">
-					<XStack items="center" gap="$2">
-						<GraduationCap size={20} color="$color12" />
-						<H4 fontWeight="800" color="$color12">
-							Grade Breakdown
-						</H4>
-					</XStack>
-					<YStack gap="$2" bg="$gray2" rounded="$4" p="$4">
-						{gradeWeights.map((weight, index) => (
-							<XStack
-								key={weight.id}
-								items="center"
-								gap="$3"
-								py="$2"
-								borderBottomWidth={
-									index < gradeWeights.length - 1 ? 1 : 0
-								}
-								borderBottomColor="$gray4"
-							>
-								<SizableText
-									flex={1}
-									size="$3"
-									fontWeight="600"
-									color="$color12"
-								>
-									{weight.label}
+			{activeTab === "data" && (
+				<YStack gap="$5">
+					{/* Course info */}
+					{section && course && (
+						<XStack gap="$3" items="center" bg="$purple3" rounded="$4" p="$4">
+							<View bg="$purple5" rounded="$4" p="$2">
+								<BookOpen size={22} color="$purple11" />
+							</View>
+							<YStack flex={1}>
+								<SizableText size="$5" fontWeight="700" color="$purple11">
+									{course.code}
 								</SizableText>
+								<SizableText size="$3" color="$purple10">
+									{course.name}
+								</SizableText>
+								<SizableText size="$2" color="$purple9">
+									{school?.name} &middot; {section.section} &middot;{" "}
+									{section.term} &middot; {section.instructor}
+								</SizableText>
+							</YStack>
+						</XStack>
+					)}
 
-								<Theme
-									name={
-										TYPE_THEME[weight.type] ?? TYPE_THEME.other
-									}
-								>
-									<View bg="$color4" rounded="$10" px="$2" py="$1">
-										<SizableText
-											size="$1"
-											fontWeight="500"
-											color="$color11"
-										>
-											{weight.type}
-										</SizableText>
-									</View>
-								</Theme>
-
-								<View minW={50}>
-									<SizableText
-										size="$2"
-										fontWeight="700"
-										color="$gray10"
-										text="right"
+					{/* Deadlines */}
+					{deadlines.length > 0 && (
+						<YStack gap="$2">
+							<H4 fontWeight="800" color="$color12">
+								Deadlines ({deadlines.length})
+							</H4>
+							<YStack gap="$2" bg="$gray2" rounded="$4" p="$4">
+								{deadlines.map((deadline, index) => (
+									<XStack
+										key={deadline.id}
+										items="center"
+										gap="$3"
+										py="$2"
+										borderBottomWidth={
+											index < deadlines.length - 1 ? 1 : 0
+										}
+										borderBottomColor="$gray4"
 									>
-										{weight.weight}%
-									</SizableText>
-								</View>
+										<SizableText
+											flex={1}
+											size="$3"
+											fontWeight="600"
+											color="$color12"
+										>
+											{deadline.title}
+										</SizableText>
+
+										<View minW={100}>
+											<SizableText size="$2" color="$gray10">
+												{new Date(deadline.dueDate).toLocaleDateString()}
+											</SizableText>
+										</View>
+
+										<Theme
+											name={
+												TYPE_THEME[deadline.type] ?? TYPE_THEME.other
+											}
+										>
+											<View bg="$color4" rounded="$10" px="$2" py="$1">
+												<SizableText
+													size="$1"
+													fontWeight="500"
+													color="$color11"
+												>
+													{deadline.type}
+												</SizableText>
+											</View>
+										</Theme>
+
+										<View minW={50}>
+											<SizableText
+												size="$2"
+												fontWeight="700"
+												color="$gray10"
+												text="right"
+											>
+												{deadline.weight}%
+											</SizableText>
+										</View>
+									</XStack>
+								))}
+							</YStack>
+						</YStack>
+					)}
+
+					{/* Grade weights */}
+					{gradeWeights.length > 0 && (
+						<YStack gap="$2">
+							<XStack items="center" gap="$2">
+								<GraduationCap size={20} color="$color12" />
+								<H4 fontWeight="800" color="$color12">
+									Grade Breakdown
+								</H4>
 							</XStack>
-						))}
-					</YStack>
+							<YStack gap="$2" bg="$gray2" rounded="$4" p="$4">
+								{gradeWeights.map((weight, index) => (
+									<XStack
+										key={weight.id}
+										items="center"
+										gap="$3"
+										py="$2"
+										borderBottomWidth={
+											index < gradeWeights.length - 1 ? 1 : 0
+										}
+										borderBottomColor="$gray4"
+									>
+										<SizableText
+											flex={1}
+											size="$3"
+											fontWeight="600"
+											color="$color12"
+										>
+											{weight.label}
+										</SizableText>
+
+										<Theme
+											name={
+												TYPE_THEME[weight.type] ?? TYPE_THEME.other
+											}
+										>
+											<View bg="$color4" rounded="$10" px="$2" py="$1">
+												<SizableText
+													size="$1"
+													fontWeight="500"
+													color="$color11"
+												>
+													{weight.type}
+												</SizableText>
+											</View>
+										</Theme>
+
+										<View minW={50}>
+											<SizableText
+												size="$2"
+												fontWeight="700"
+												color="$gray10"
+												text="right"
+											>
+												{weight.weight}%
+											</SizableText>
+										</View>
+									</XStack>
+								))}
+							</YStack>
+						</YStack>
+					)}
 				</YStack>
 			)}
 
 			{/* Actions */}
 			<XStack gap="$3">
+				{section && !isEnrolled && (
+					<Button
+						theme="green"
+						onPress={() =>
+							enroll.mutate(
+								{ sectionId: section.id },
+								{
+									onSuccess: () =>
+										queryClient.invalidateQueries(),
+								},
+							)
+						}
+						disabled={enroll.isPending}
+					>
+						{enroll.isPending ? "Enrolling..." : "Enroll in Course"}
+					</Button>
+				)}
 				{section && (
 					<Button
 						theme="purple"
-						onPress={() => router.push(`/course/${section.courseId}`)}
+						onPress={() => router.push(`/course/${section.id}`)}
 					>
 						View Course
 					</Button>

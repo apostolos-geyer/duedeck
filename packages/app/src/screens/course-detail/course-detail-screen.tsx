@@ -1,7 +1,9 @@
 "use client";
 
-import { H2, H3, SizableText, Spinner, Theme, View, XStack, YStack } from "@repo/ui";
+import { Button, H2, H3, SizableText, Spinner, Theme, View, XStack, YStack } from "@repo/ui";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCourseDetail } from "../../hooks/use-course-detail";
+import { useEnroll, useUnenroll } from "../../hooks/use-enrollment";
 import { GradeBreakdown } from "./grade-breakdown";
 import { DeadlineTimeline } from "./deadline-timeline";
 import { StudyGroupCTA } from "./study-group-cta";
@@ -11,8 +13,11 @@ interface CourseDetailScreenProps {
 }
 
 export function CourseDetailScreen({ sectionId }: CourseDetailScreenProps) {
-	const { section, deadlines, gradeWeights, isLoading } =
+	const queryClient = useQueryClient();
+	const { section, deadlines, gradeWeights, isEnrolled, isLoading } =
 		useCourseDetail(sectionId);
+	const enroll = useEnroll();
+	const unenroll = useUnenroll();
 
 	if (isLoading) {
 		return (
@@ -72,6 +77,40 @@ export function CourseDetailScreen({ sectionId }: CourseDetailScreenProps) {
 						mt="$2"
 					/>
 				</YStack>
+
+				{/* Enrollment */}
+				<XStack gap="$3">
+					{isEnrolled ? (
+						<Button
+							theme="red"
+							variant="outlined"
+							size="$3"
+							onPress={() =>
+								unenroll.mutate(
+									{ sectionId },
+									{ onSuccess: () => queryClient.invalidateQueries() },
+								)
+							}
+							disabled={unenroll.isPending}
+						>
+							{unenroll.isPending ? "Leaving..." : "Leave Course"}
+						</Button>
+					) : (
+						<Button
+							theme="green"
+							size="$3"
+							onPress={() =>
+								enroll.mutate(
+									{ sectionId },
+									{ onSuccess: () => queryClient.invalidateQueries() },
+								)
+							}
+							disabled={enroll.isPending}
+						>
+							{enroll.isPending ? "Enrolling..." : "Enroll in Course"}
+						</Button>
+					)}
+				</XStack>
 
 				{/* Grade Breakdown */}
 				<GradeBreakdown weights={gradeWeights.data ?? []} />
