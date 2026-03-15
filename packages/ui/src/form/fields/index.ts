@@ -12,3 +12,4 @@ export {
 	type RadioGroupFieldProps,
 	type RadioOption,
 } from "./radio-group-field";
+export { NumberField, type NumberFieldProps } from "./number-field";
