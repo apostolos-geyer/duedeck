@@ -7,16 +7,23 @@ import {
 	createDocumentRecord,
 	triggerHermesParse,
 	handleParseCallback,
-	saveExtractionAndPause,
+	saveExtraction,
 	commitExtractedData,
 	cancelDocument,
+	enrollUserInDocSection,
 	closeStream,
 } from "./steps";
-import { extractSyllabusData } from "./extract-syllabus";
-import type { ConfirmationPayload } from "./extraction-schema";
+import {
+	fetchMarkdown,
+	extractSyllabusData,
+} from "./extract-syllabus";
+import type { ConfirmationPayload, SyllabusExtraction } from "./extraction-schema";
 
 export type { ProgressEvent } from "./steps";
-export type { SyllabusExtraction, ConfirmationPayload } from "./extraction-schema";
+export type {
+	SyllabusExtraction,
+	ConfirmationPayload,
+} from "./extraction-schema";
 
 export interface ParseDocumentInput {
 	s3Key: string;
@@ -35,20 +42,18 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 
 	// 2. Check for existing document with same hash
 	await writeProgress("dedup", "start");
-	const { existingDoc } = await checkDuplicate(
-		contentHash,
-		input.sectionId,
-		input.uploadedById,
-	);
+	const { existingDoc, salvageableParsedKey, salvageableExtraction } =
+		await checkDuplicate(contentHash, input.sectionId, input.uploadedById);
 
 	// Track what we can skip based on prior work
 	let parsedS3Key: string | undefined;
+	let priorExtraction: SyllabusExtraction | undefined;
 
 	if (existingDoc) {
 		const isConfirmed = existingDoc.status === "confirmed";
 
 		if (isConfirmed) {
-			// Already fully processed — redirect to existing document page
+			await enrollUserInDocSection(existingDoc.id, input.uploadedById);
 			await writeProgress("dedup", "done", { isDuplicate: true });
 			await writeProgress("done", "done", {
 				docId: existingDoc.id,
@@ -73,7 +78,17 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 			skippingHermes: !!parsedS3Key,
 		});
 	} else {
-		await writeProgress("dedup", "done", { isDuplicate: false });
+		// No scoped match — but we may still have parsed output from another upload
+		if (salvageableParsedKey) {
+			parsedS3Key = salvageableParsedKey;
+		}
+		if (salvageableExtraction) {
+			priorExtraction = salvageableExtraction;
+		}
+		await writeProgress("dedup", "done", {
+			isDuplicate: false,
+			skippingHermes: !!parsedS3Key,
+		});
 	}
 
 	// 3. Create fresh document record
@@ -89,40 +104,52 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 		const webhook = createWebhook();
 		await triggerHermesParse(input.s3Key, webhook.url, webhook.token);
 		const callbackRequest = await webhook;
-		await writeProgress("parsing", "done");
 
-		// 5. Process Hermes result
-		await writeProgress("extracting", "start");
 		const result = await handleParseCallback(docId, callbackRequest);
 		if (result.status === "failed") {
+			await writeProgress("parsing", "done", { error: "Parse failed" });
 			await writeProgress("done", "done", { docId, error: "Parse failed" });
 			await closeStream();
 			return { docId, contentHash, deduplicated: false };
 		}
 		parsedS3Key = result.parsedS3Key;
 	} else {
-		// Skip Hermes — markdown already exists
 		await writeProgress("parsing", "start");
-		await writeProgress("parsing", "done");
-		await writeProgress("extracting", "start");
 	}
 
-	// 6. AI extraction from parsed markdown
-	const extraction = await extractSyllabusData(parsedS3Key);
-	await writeProgress("extracting", "done");
-
-	// 7. Save extraction + pause for user review
-	await saveExtractionAndPause(docId, extraction);
-	const hookToken = `confirm-${docId}`;
-	await writeProgress("reviewing", "start", {
-		extraction,
-		hookToken,
+	// 4b. Fetch the parsed markdown once — pass as text to extractor and UI
+	const markdownContent = await fetchMarkdown(parsedS3Key);
+	await writeProgress("parsing", "done", {
+		parsedS3Key,
+		markdownContent,
+		s3Key: input.s3Key,
 	});
 
-	const hook = createHook<ConfirmationPayload>({ token: hookToken });
+	// 5. Extract all syllabus data (skip if salvaged from prior upload)
+	let extraction: SyllabusExtraction;
+	if (priorExtraction) {
+		await writeProgress("extracting", "start");
+		extraction = priorExtraction;
+		await writeProgress("extracting", "done");
+	} else {
+		await writeProgress("extracting", "start");
+		extraction = await extractSyllabusData(markdownContent);
+		await writeProgress("extracting", "done");
+	}
+
+	// 6. Pause for review
+	await saveExtraction(docId, extraction);
+	const reviewToken = `confirm-${docId}`;
+	await writeProgress("reviewing", "start", {
+		extraction,
+		hookToken: reviewToken,
+		s3Key: input.s3Key,
+		markdownContent,
+	});
+
+	const hook = createHook<ConfirmationPayload>({ token: reviewToken });
 	const payload = await hook;
 
-	// 8. Handle user decision
 	if (payload.action === "cancel") {
 		await cancelDocument(docId);
 		await writeProgress("done", "done", { docId, cancelled: true });
@@ -130,7 +157,7 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 		return { docId, contentHash, deduplicated: false, cancelled: true };
 	}
 
-	// 9. Commit confirmed data
+	// 7. Commit confirmed data
 	await commitExtractedData(docId, payload.data, input.uploadedById);
 
 	await writeProgress("done", "done", { docId });

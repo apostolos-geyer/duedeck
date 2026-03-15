@@ -53,8 +53,27 @@ export async function checkDuplicate(
 	uploadedById?: string,
 ): Promise<{
 	existingDoc: ExistingDocInfo | null;
+	salvageableParsedKey: string | null;
+	salvageableExtraction: SyllabusExtraction | null;
 }> {
 	"use step";
+	// First: check if ANY confirmed doc exists with this hash (global dedup)
+	const confirmed = await prisma.document.findFirst({
+		where: { contentHash, status: "confirmed" },
+		select: { id: true, status: true, parsedS3Key: true, sectionId: true },
+	});
+	if (confirmed) {
+		return { existingDoc: confirmed, salvageableParsedKey: null, salvageableExtraction: null };
+	}
+
+	// Check globally for any doc with this hash that already has parsed output
+	const withParsed = await prisma.document.findFirst({
+		where: { contentHash, parsedS3Key: { not: null } },
+		select: { parsedS3Key: true, extractedData: true },
+		orderBy: { uploadedAt: "desc" },
+	});
+
+	// Check for in-progress/stale docs scoped to this user or section
 	const where: Prisma.DocumentWhereInput = { contentHash };
 	if (sectionId) {
 		where.sectionId = sectionId;
@@ -71,7 +90,11 @@ export async function checkDuplicate(
 		},
 		orderBy: { uploadedAt: "desc" },
 	});
-	return { existingDoc: existing };
+	return {
+		existingDoc: existing,
+		salvageableParsedKey: withParsed?.parsedS3Key ?? null,
+		salvageableExtraction: (withParsed?.extractedData as unknown as SyllabusExtraction) ?? null,
+	};
 }
 
 export async function deleteDocument(docId: string) {
@@ -131,7 +154,7 @@ export async function handleParseCallback(
 	return { parsedS3Key: body.output_s3_key ?? "", status: newStatus };
 }
 
-export async function saveExtractionAndPause(
+export async function saveExtraction(
 	docId: string,
 	extraction: SyllabusExtraction,
 ) {
@@ -139,8 +162,8 @@ export async function saveExtractionAndPause(
 	await prisma.document.update({
 		where: { id: docId },
 		data: {
-			extractedData: extraction as unknown as Prisma.InputJsonValue,
 			status: "awaiting_review",
+			extractedData: extraction as unknown as Prisma.JsonObject,
 		},
 	});
 }
@@ -219,10 +242,13 @@ export async function commitExtractedData(
 			update: {},
 		});
 
-		// Create deadlines
-		if (deadlines.length > 0) {
+		// Create deadlines (skip entries with unparseable dates)
+		const validDeadlines = deadlines.filter(
+			(d) => !Number.isNaN(new Date(d.dueDate).getTime()),
+		);
+		if (validDeadlines.length > 0) {
 			await tx.deadline.createMany({
-				data: deadlines.map((d) => ({
+				data: validDeadlines.map((d) => ({
 					sectionId: section.id,
 					title: d.title,
 					dueDate: new Date(d.dueDate),
@@ -265,6 +291,25 @@ export async function commitExtractedData(
 				parsedDeadlineCount: deadlines.length,
 			},
 		});
+	});
+}
+
+export async function enrollUserInDocSection(
+	docId: string,
+	userId: string,
+) {
+	"use step";
+	const doc = await prisma.document.findUniqueOrThrow({
+		where: { id: docId },
+		select: { sectionId: true },
+	});
+	if (!doc.sectionId) return;
+	await prisma.enrollment.upsert({
+		where: {
+			userId_sectionId: { userId, sectionId: doc.sectionId },
+		},
+		create: { userId, sectionId: doc.sectionId },
+		update: {},
 	});
 }
 
