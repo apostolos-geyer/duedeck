@@ -26,8 +26,8 @@ const STEP_LABELS: Record<ProgressStep, string> = {
 	hashing: "Computing content hash",
 	dedup: "Checking for duplicates",
 	parsing: "Parsing document",
-	extracting: "Extracting deadlines",
-	reviewing: "Awaiting your review",
+	extracting: "Extracting syllabus data",
+	reviewing: "Review extracted data",
 	done: "Done",
 };
 
@@ -37,12 +37,7 @@ export interface ProgressEvent {
 	data?: Record<string, unknown>;
 }
 
-interface ProcessingStepsProps {
-	events: ProgressEvent[];
-	onComplete: (data?: Record<string, unknown>) => void;
-}
-
-export function ProcessingSteps({ events, onComplete }: ProcessingStepsProps) {
+function useProgressState(events: ProgressEvent[]) {
 	const completedSteps = useMemo(() => {
 		const set = new Set<ProgressStep>();
 		for (const event of events) {
@@ -67,6 +62,113 @@ export function ProcessingSteps({ events, onComplete }: ProcessingStepsProps) {
 		return events.find((e) => e.step === "done" && e.status === "done");
 	}, [events]);
 
+	return { completedSteps, activeStep, doneEvent };
+}
+
+// ── Compact horizontal stepper (always visible) ─────────────────────
+
+interface ProgressBarProps {
+	events: ProgressEvent[];
+}
+
+export function ProgressBar({ events }: ProgressBarProps) {
+	const { completedSteps, activeStep } = useProgressState(events);
+
+	const PHASES: { key: ProgressStep; label: string }[] = [
+		{ key: "parsing", label: "Parse" },
+		{ key: "extracting", label: "Extract" },
+		{ key: "reviewing", label: "Review" },
+	];
+
+	const activePhaseIdx = PHASES.findIndex((p) => p.key === activeStep);
+	const isPreProcessing =
+		activeStep === "hashing" ||
+		activeStep === "dedup" ||
+		activeStep === "uploading";
+
+	return (
+		<XStack gap="$2" items="center" py="$2">
+			{PHASES.map((phase, idx) => {
+				const isDone = completedSteps.has(phase.key);
+				const isActive =
+					(idx === 0 && isPreProcessing) ||
+					phase.key === activeStep;
+				const isPast =
+					isDone || (activePhaseIdx > idx && !isPreProcessing);
+
+				return (
+					<XStack key={phase.key} gap="$2" items="center" flex={1}>
+						{idx > 0 && (
+							<View
+								flex={1}
+								height={2}
+								bg={isPast ? "$green9" : "$gray4"}
+								rounded="$10"
+							/>
+						)}
+						<XStack gap="$1.5" items="center">
+							<View
+								width={24}
+								height={24}
+								rounded="$10"
+								bg={
+									isDone
+										? "$green9"
+										: isActive
+											? "$purple9"
+											: "$gray4"
+								}
+								items="center"
+								justify="center"
+							>
+								{isDone ? (
+									<Check size={14} color="white" />
+								) : isActive ? (
+									<Spinner size="small" color="white" />
+								) : (
+									<SizableText
+										size="$1"
+										color={isPast ? "white" : "$gray8"}
+										fontWeight="700"
+									>
+										{idx + 1}
+									</SizableText>
+								)}
+							</View>
+							<SizableText
+								size="$1"
+								fontWeight={isActive ? "700" : "400"}
+								color={
+									isDone
+										? "$green9"
+										: isActive
+											? "$color12"
+											: "$gray8"
+								}
+								display="none"
+								$md={{ display: "flex" }}
+							>
+								{phase.label}
+							</SizableText>
+						</XStack>
+					</XStack>
+				);
+			})}
+		</XStack>
+	);
+}
+
+// ── Detailed vertical steps (shown during processing only) ──────────
+
+interface ProcessingStepsProps {
+	events: ProgressEvent[];
+	onComplete: (data?: Record<string, unknown>) => void;
+}
+
+export function ProcessingSteps({ events, onComplete }: ProcessingStepsProps) {
+	const { completedSteps, activeStep, doneEvent } =
+		useProgressState(events);
+
 	useEffect(() => {
 		if (doneEvent) {
 			onComplete(doneEvent.data);
@@ -74,7 +176,7 @@ export function ProcessingSteps({ events, onComplete }: ProcessingStepsProps) {
 	}, [doneEvent, onComplete]);
 
 	return (
-		<YStack gap="$2" py="$4" items="flex-start">
+		<YStack gap="$2" py="$2" items="flex-start">
 			{STEP_ORDER.map((step, index) => {
 				const isCompleted = completedSteps.has(step);
 				const isActive = step === activeStep && !isCompleted;
