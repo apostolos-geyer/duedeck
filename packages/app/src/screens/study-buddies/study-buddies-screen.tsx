@@ -17,6 +17,7 @@ import { ChevronRight, MessageCircle, Users } from "@tamagui/lucide-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useCurrentUser } from "../../hooks/use-settings";
+import { Link } from "../../components/link";
 import {
   useBrowseCourses,
   useDeleteStudyGroup,
@@ -137,21 +138,25 @@ export function StudyBuddiesScreen({
           </Paragraph>
         ) : (
           <YStack gap="$1">
-            {(myClasses ?? []).map((row) => (
-              <BrutalistListItem
-                key={row.sectionId}
-                rounded={0}
-                hoverStyle={{ bg: "$gray3" }}
-                pressStyle={{ bg: "$gray4" }}
-                cursor="pointer"
-                onPress={() => handleOpenClassChat(row.sectionId)}
-                disabled={ensureClassChat.isPending}
-                icon={<MessageCircle size={18} color="$gray10" />}
-                title={`${row.courseCode} · Sec ${row.sectionCode}`}
-                subTitle={`${row.schoolShortName} · ${row.term}${row.classChat ? ` · ${row.classChat.members.length} in chat` : ""}`}
-                iconAfter={<ChevronRight size={16} color="$gray8" />}
-              />
-            ))}
+            {(myClasses ?? []).map((row) => {
+              const chatId = row.classChat?.id;
+              const inner = (
+                <BrutalistListItem
+                  key={row.sectionId}
+                  onPress={chatId ? undefined : () => handleOpenClassChat(row.sectionId)}
+                  disabled={!chatId && ensureClassChat.isPending}
+                  icon={<MessageCircle size={18} color="$gray10" />}
+                  title={`${row.courseCode} · Sec ${row.sectionCode}`}
+                  subTitle={`${row.schoolShortName} · ${row.term}${row.classChat ? ` · ${row.classChat.members.length} in chat` : ""}`}
+                  iconAfter={<ChevronRight size={16} color="$gray8" />}
+                />
+              );
+              return chatId ? (
+                <Link key={row.sectionId} href={`/study-buddies/chat/${chatId}`} style={{ textDecoration: "none" }}>
+                  {inner}
+                </Link>
+              ) : inner;
+            })}
           </YStack>
         )}
       </YStack>
@@ -181,12 +186,8 @@ export function StudyBuddiesScreen({
 
               return (
                 <YStack key={g.id}>
+                  <Link href={`/study-buddies/chat/${g.id}`} style={{ textDecoration: "none" }}>
                   <BrutalistListItem
-                    rounded={0}
-                    hoverStyle={{ bg: "$gray3" }}
-                    pressStyle={{ bg: "$gray4" }}
-                    cursor="pointer"
-                    onPress={() => onNavigateToChat?.(g.id)}
                     icon={<Users size={18} color="$gray10" />}
                     title={g.name}
                     subTitle={`${g.course.code} · ${g.course.school.shortName} · ${g.members.length} members`}
@@ -223,6 +224,7 @@ export function StudyBuddiesScreen({
                       </XStack>
                     }
                   />
+                  </Link>
                   {confirmingDelete === g.id && (
                     <AppCard variant="accent" size="sm" bg="$red2" borderColor="$red7" m="$2">
                       <Paragraph size="$2" color="$red11" fontWeight="600">

@@ -13,12 +13,11 @@ import { ArrowLeft, Settings, UserPlus } from "@tamagui/lucide-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useCurrentUser } from "../../hooks/use-settings";
-import { useMyClassChats, useRemoveStudyGroupMember } from "../../hooks/use-study-buddies";
+import { useMyClassChats } from "../../hooks/use-study-buddies";
 import { useOrpc } from "../../rpc/orpc-context";
 import { CreateCustomGroupSheet } from "./create-custom-group-sheet";
 import { GroupChat } from "./group-chat";
 import { InviteClassToStudyGroupSheet } from "./invite-class-to-study-group-sheet";
-import { MemberList } from "./member-list";
 import { StudyGroupSettingsSheet } from "./study-group-settings-sheet";
 
 export interface ChatScreenProps {
@@ -31,7 +30,7 @@ export function ChatScreen({ groupId, onNavigateBack }: ChatScreenProps) {
   const queryClient = useQueryClient();
   const { data: viewer } = useCurrentUser();
   const { data: myClasses } = useMyClassChats();
-  const removeMember = useRemoveStudyGroupMember();
+
 
   const { data: group, isLoading } = useQuery(
     orpc.studyGroups.get.queryOptions({ input: { groupId } }),
@@ -158,25 +157,6 @@ export function ChatScreen({ groupId, onNavigateBack }: ChatScreenProps) {
           ) : null}
         </XStack>
       </YStack>
-
-      {/* Members */}
-      <MemberList
-        members={group.members}
-        createdById={group.createdById}
-        viewerId={viewer?.id}
-        canKick={canManageCustomStudyGroup ? true : undefined}
-        onKickMember={(userId) => {
-          removeMember.mutate(
-            { groupId: group.id, userId },
-            {
-              onSuccess: () => {
-                void queryClient.invalidateQueries();
-              },
-            },
-          );
-        }}
-        kickPending={removeMember.isPending}
-      />
 
       {/* Chat */}
       <YStack flex={1} minH={320} bg="$gray2" overflow="hidden">

@@ -209,7 +209,7 @@ export function GroupChat({ groupId, onRemovedFromGroup }: GroupChatProps) {
 
         {/* Right panel */}
         {!removedFromGroup && (
-          <YStack width={280} borderLeftWidth={2} borderColor="$gray5">
+          <YStack width={280} borderLeftWidth={2} borderColor="$gray5" overflow="hidden">
             <Tabs defaultValue="activity" flexDirection="column" flex={1}>
               <Tabs.List>
                 <Tabs.Tab value="activity" flex={1}>
