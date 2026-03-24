@@ -78,7 +78,7 @@ export function UploadScreen() {
 	}, [cancelActive, doUpload]);
 
 	return (
-		<YStack gap="$5" maxW="$container.xxl" width="100%">
+		<YStack gap="$5" maxW="$container.xxl" width="100%" p="$3" self="center">
 			{showConflict && (
 				<AppCard variant="accent" size="md">
 					<YStack gap="$3">

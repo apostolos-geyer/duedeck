@@ -18,7 +18,7 @@ export function SettingsScreen() {
 	const [activeTab, setActiveTab] = useState<TabKey>("profile");
 
 	return (
-		<YStack gap="$4" maxW="$container.xxl" width="100%">
+		<YStack gap="$4" maxW="$container.xxl" width="100%" p="$3" self="center">
 			<Tabs
 				value={activeTab}
 				onValueChange={(v) => setActiveTab(v as TabKey)}

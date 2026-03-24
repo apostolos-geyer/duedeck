@@ -60,9 +60,10 @@ export function CourseDetailScreen({ sectionId }: CourseDetailScreenProps) {
 		<Theme name={sectionData.theme as any}>
 			<YStack
 				gap="$4"
-				$md={{ gap: "$5" }}
 				maxW="$container.full"
 				width="100%"
+				p="$3"
+				self="center"
 			>
 				{/* Mobile single-column, Desktop two-column */}
 				<YStack
