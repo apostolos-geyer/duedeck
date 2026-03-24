@@ -7,6 +7,7 @@ import { ProcessingBanner } from "@repo/app/components/processing-banner";
 import { orpc } from "@/lib/rpc-client";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
+import { BottomTabBar } from "./bottom-tab-bar";
 
 interface AppShellProps {
 	user: { name: string; email: string };
@@ -18,7 +19,6 @@ export function AppShell({ user, children }: AppShellProps) {
 	const pathname = usePathname();
 	const router = useRouter();
 
-	// Close sidebar on route change (mobile)
 	useEffect(() => {
 		setSidebarOpen(false);
 	}, [pathname]);
@@ -33,13 +33,12 @@ export function AppShell({ user, children }: AppShellProps) {
 
 	return (
 		<XStack height="100vh" width="100vw">
-			{/* Desktop sidebar — always visible at md+ */}
+			{/* Desktop nav rail — always visible at md+ */}
 			<Sidebar user={user} />
 
 			{/* Mobile sidebar overlay */}
 			{sidebarOpen && (
 				<>
-					{/* Backdrop */}
 					<View
 						position="absolute"
 						t={0}
@@ -52,7 +51,6 @@ export function AppShell({ user, children }: AppShellProps) {
 						display="flex"
 						$md={{ display: "none" }}
 					/>
-					{/* Sidebar drawer */}
 					<View
 						position="absolute"
 						t={0}
@@ -73,6 +71,8 @@ export function AppShell({ user, children }: AppShellProps) {
 				<YStack flex={1} overflow="scroll" p="$3" $md={{ p: "$5" }}>
 					{children}
 				</YStack>
+				{/* Mobile bottom tabs */}
+				<BottomTabBar />
 			</YStack>
 		</XStack>
 	);

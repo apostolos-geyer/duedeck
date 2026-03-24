@@ -1,6 +1,13 @@
 "use client";
 
-import { H3, Spinner, YStack } from "@repo/ui";
+import {
+	H3,
+	Paragraph,
+	Separator,
+	Spinner,
+	YStack,
+} from "@repo/ui";
+import { AppCard, EmptyState } from "@repo/ui";
 import { useDashboardData } from "../../hooks/use-dashboard-data";
 import { Link } from "../../components/link";
 import { StatsRow } from "./stats-row";
@@ -45,79 +52,83 @@ export function DashboardScreen() {
 
 	const examsThisMonth = deadlines.filter(
 		(d) =>
-			(d.type === "exam" || d.type === "quiz") &&
-			isThisMonth(d.dueDate),
+			(d.type === "exam" || d.type === "quiz") && isThisMonth(d.dueDate),
 	).length;
 
 	return (
-		<YStack gap="$4" maxW="$container.full" width="100%" $md={{ gap: "$5" }}>
-			{/* Stats */}
+		<YStack gap="$4" maxW="$container.full" width="100%">
+			{/* Compact stats line */}
 			<StatsRow
 				dueThisWeek={dueThisWeek}
 				examsThisMonth={examsThisMonth}
 				totalCourses={sections.length}
 			/>
 
-			{/* Upcoming Deadlines */}
-			<YStack gap="$3">
-				<H3 fontWeight="800" color="$color12">
-					Upcoming Deadlines
-				</H3>
-				<YStack gap="$2">
-					{deadlines.map((deadline) => (
-						<DeadlineCard
-							key={deadline.id}
-							deadline={deadline}
+			{/* Two-column layout on desktop, single column mobile */}
+			<YStack gap="$4" $md={{ flexDirection: "row", gap: "$5" }}>
+				{/* LEFT: Deadlines (60% on desktop) */}
+				<YStack gap="$3" $md={{ flex: 3, minW: 0 }}>
+					<H3 fontFamily="$heading" color="$color12">
+						Upcoming Deadlines
+					</H3>
+
+					{deadlines.length === 0 ? (
+						<EmptyState
+							title="No deadlines yet"
+							description="Upload a syllabus to automatically extract your deadlines."
 						/>
-					))}
-					{deadlines.length === 0 && (
-						<YStack p="$4" items="center">
-							<H3 color="$gray9">No upcoming deadlines</H3>
+					) : (
+						<AppCard variant="outlined" size="sm" p="$0">
+							{deadlines.map((deadline, i) => (
+								<YStack key={deadline.id}>
+									{i > 0 && <Separator />}
+									<DeadlineCard deadline={deadline} />
+								</YStack>
+							))}
+						</AppCard>
+					)}
+				</YStack>
+
+				{/* RIGHT: Courses + Upload (40% on desktop) */}
+				<YStack gap="$3" $md={{ flex: 2, minW: 0 }}>
+					<H3 fontFamily="$heading" color="$color12">
+						My Courses
+					</H3>
+
+					{sections.length === 0 ? (
+						<Link href="/upload" style={{ textDecoration: "none" }}>
+							<UploadCTA />
+						</Link>
+					) : (
+						<YStack gap="$2">
+							{sections.map((section) => {
+								const sectionDeadlines = deadlines.filter(
+									(d) =>
+										d.sectionId === section.id &&
+										!d.completed &&
+										new Date(d.dueDate) >= new Date(),
+								);
+								const nextDeadline = sectionDeadlines[0];
+								return (
+									<Link
+										key={section.id}
+										href={`/course/${section.id}`}
+										style={{ textDecoration: "none" }}
+									>
+										<CourseCard
+											section={section}
+											nextDeadline={nextDeadline}
+											courseTermEnded={
+												termsEndedBySection[section.id] ?? false
+											}
+										/>
+									</Link>
+								);
+							})}
 						</YStack>
 					)}
 				</YStack>
 			</YStack>
-
-			{/* My Courses */}
-			<YStack gap="$3">
-				<H3 fontWeight="800" color="$color12">
-					My Courses
-				</H3>
-				<YStack
-					gap="$3"
-					$sm={{ flexDirection: "row", gap: "$4", flexWrap: "wrap" }}
-				>
-					{sections.map((section) => {
-						const sectionDeadlines = deadlines.filter(
-							(d) =>
-								d.sectionId === section.id &&
-								!d.completed &&
-								new Date(d.dueDate) >= new Date(),
-						);
-						const nextDeadline = sectionDeadlines[0];
-						return (
-							<Link
-								key={section.id}
-								href={`/course/${section.id}`}
-								style={{ textDecoration: "none", flex: "1 1 280px", maxWidth: 360 }}
-							>
-								<CourseCard
-									section={section}
-									nextDeadline={nextDeadline}
-									courseTermEnded={
-										termsEndedBySection[section.id] ?? false
-									}
-								/>
-							</Link>
-						);
-					})}
-				</YStack>
-			</YStack>
-
-			{/* Upload CTA */}
-			<Link href="/upload" style={{ textDecoration: "none" }}>
-				<UploadCTA />
-			</Link>
 		</YStack>
 	);
 }

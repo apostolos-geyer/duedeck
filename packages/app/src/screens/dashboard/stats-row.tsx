@@ -1,36 +1,7 @@
 "use client";
 
-import { SizableText, Theme, YStack } from "@repo/ui";
-
-interface StatCardProps {
-	label: string;
-	value: number;
-	theme?: string;
-}
-
-function StatCard({ label, value, theme: themeName = "purple" }: StatCardProps) {
-	return (
-		<Theme name={themeName as any}>
-			<YStack
-				$sm={{ flex: 1 }}
-				minW={0}
-				bg="$gray2"
-				rounded="$4"
-				p="$4"
-				gap="$1"
-				borderTopWidth={3}
-				borderTopColor="$color9"
-			>
-				<SizableText size="$10" fontWeight="800" color="$color9">
-					{value}
-				</SizableText>
-				<SizableText size="$3" color="$gray10" fontWeight="500">
-					{label}
-				</SizableText>
-			</YStack>
-		</Theme>
-	);
-}
+import { Paragraph, SizableText, XStack } from "@repo/ui";
+import { AppCard } from "@repo/ui";
 
 interface StatsRowProps {
 	dueThisWeek: number;
@@ -44,10 +15,29 @@ export function StatsRow({
 	totalCourses,
 }: StatsRowProps) {
 	return (
-		<YStack gap="$3" $sm={{ flexDirection: "row", gap: "$4" }}>
-			<StatCard label="Due This Week" value={dueThisWeek} theme="red" />
-			<StatCard label="Exams This Month" value={examsThisMonth} theme="orange" />
-			<StatCard label="Courses" value={totalCourses} theme="purple" />
-		</YStack>
+		<AppCard variant="flat" size="sm">
+			<XStack gap="$3" items="center" flexWrap="wrap">
+				<Paragraph size="$3" color="$color12">
+					<SizableText fontWeight="800" color="$red9" size="$5">
+						{dueThisWeek}
+					</SizableText>
+					{" "}due this week
+				</Paragraph>
+				<SizableText size="$3" color="$gray7">·</SizableText>
+				<Paragraph size="$3" color="$color12">
+					<SizableText fontWeight="800" color="$orange9" size="$5">
+						{examsThisMonth}
+					</SizableText>
+					{" "}exams this month
+				</Paragraph>
+				<SizableText size="$3" color="$gray7">·</SizableText>
+				<Paragraph size="$3" color="$color12">
+					<SizableText fontWeight="800" color="$purple9" size="$5">
+						{totalCourses}
+					</SizableText>
+					{" "}courses
+				</Paragraph>
+			</XStack>
+		</AppCard>
 	);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, SizableText, View, XStack, YStack } from "@repo/ui";
+import { Avatar, H4, Separator, View, YStack } from "@repo/ui";
 import {
 	Calendar,
 	LayoutDashboard,
@@ -17,119 +17,96 @@ interface SidebarProps {
 	onNavigate?: () => void;
 }
 
+const NAV_ITEMS = [
+	{ icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+	{ icon: Calendar, label: "Calendar", href: "/calendar" },
+	{ icon: Users, label: "Study Buddies", href: "/study-buddies" },
+	{ icon: Settings, label: "Settings", href: "/settings" },
+] as const;
+
 export function Sidebar({ user, forceShow, onNavigate }: SidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
+	const _initial = user.name?.charAt(0)?.toUpperCase() ?? "?";
 
-	const initial = user.name?.charAt(0)?.toUpperCase() ?? "?";
-
-	function navigate(href: string) {
-		router.push(href);
-		onNavigate?.();
+	function isActive(href: string) {
+		if (href === "/dashboard") return pathname === "/dashboard";
+		return pathname.startsWith(href);
 	}
 
 	return (
 		<YStack
-			width={240}
+			width={64}
 			height="100%"
 			bg="$gray2"
-			borderRightWidth={1}
-			borderRightColor="$gray5"
-			p="$4"
+			borderRightWidth={2}
+			borderRightColor="$gray6"
+			items="center"
+			py="$3"
+			gap="$2"
 			display={forceShow ? "flex" : "none"}
 			$md={{ display: "flex" }}
 		>
-			{/* Top section */}
-			<SizableText size="$8" fontWeight="900" color="$purple9">
-				DueDeck
-			</SizableText>
-
-			<YStack height="$3" />
-
-			<Button
-				theme="purple"
-				icon={<Upload size={18} />}
-				width="100%"
-				onPress={() => navigate("/upload")}
+			{/* Logo */}
+			<H4
+				fontFamily="$heading"
+				color="$purple9"
+				mb="$2"
+				select="none"
 			>
-				Upload Syllabus
-			</Button>
+				DD
+			</H4>
 
-			{/* Middle section — nav items */}
-			<YStack flex={1} gap="$1" mt="$4">
-				<NavItem
-					icon={
-						<LayoutDashboard
-							size={20}
-							color={pathname === "/dashboard" ? "$purple9" : "$gray10"}
-						/>
-					}
-					label="Dashboard"
-					href="/dashboard"
-					active={pathname === "/dashboard"}
-				/>
-				<NavItem
-					icon={
-						<Calendar
-							size={20}
-							color={pathname === "/calendar" ? "$purple9" : "$gray10"}
-						/>
-					}
-					label="Calendar"
-					href="/calendar"
-					active={pathname === "/calendar"}
-				/>
-				<NavItem
-					icon={
-						<Users
-							size={20}
-							color={
-								pathname.startsWith("/study-buddies") ? "$purple9" : "$gray10"
+			{/* Upload button */}
+			<View
+				width={40}
+				height={40}
+				items="center"
+				justify="center"
+				bg="$purple9"
+				rounded={0}
+				cursor="pointer"
+				hoverStyle={{ bg: "$purple10" }}
+				pressStyle={{ bg: "$purple11" }}
+				onPress={() => {
+					router.push("/upload");
+					onNavigate?.();
+				}}
+			>
+				<Upload size={18} color="white" />
+			</View>
+
+			<Separator my="$2" width={32} />
+
+			{/* Nav items */}
+			<YStack flex={1} gap="$1" width="100%">
+				{NAV_ITEMS.map((item) => {
+					const active = isActive(item.href);
+					return (
+						<NavItem
+							key={item.href}
+							icon={
+								<item.icon
+									size={20}
+									color={active ? "$purple9" : "$gray10"}
+								/>
 							}
+							label={item.label}
+							href={item.href}
+							active={active}
 						/>
-					}
-					label="Study Buddies"
-					href="/study-buddies"
-					active={pathname.startsWith("/study-buddies")}
-				/>
-				<NavItem
-					icon={
-						<Settings
-							size={20}
-							color={
-								pathname.startsWith("/settings") ? "$purple9" : "$gray10"
-							}
-						/>
-					}
-					label="Settings"
-					href="/settings"
-					active={pathname.startsWith("/settings")}
-				/>
+					);
+				})}
 			</YStack>
 
-			{/* Bottom section — user info */}
-			<XStack gap="$3" items="center">
-				<View
-					width={32}
-					height={32}
-					rounded="$10"
+			{/* User avatar */}
+			<Avatar circular size="$3">
+				<Avatar.Fallback
 					bg="$purple9"
 					items="center"
 					justify="center"
-				>
-					<SizableText color="white" size="$3" fontWeight="700">
-						{initial}
-					</SizableText>
-				</View>
-				<YStack flex={1} overflow="hidden">
-					<SizableText size="$3" fontWeight="600" numberOfLines={1}>
-						{user.name}
-					</SizableText>
-					<SizableText size="$2" color="$gray10" numberOfLines={1}>
-						{user.email}
-					</SizableText>
-				</YStack>
-			</XStack>
+				/>
+			</Avatar>
 		</YStack>
 	);
 }

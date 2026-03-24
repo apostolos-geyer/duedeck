@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, SizableText, View, XStack } from "@repo/ui";
-import { Menu } from "@tamagui/lucide-icons";
-import { usePathname } from "next/navigation";
+import { Avatar, Button, H4, SizableText, XStack } from "@repo/ui";
+import { Menu, Upload } from "@tamagui/lucide-icons";
+import { usePathname, useRouter } from "next/navigation";
 
 interface TopBarProps {
 	user: { name: string; email: string };
@@ -13,7 +13,7 @@ function getPageTitle(pathname: string): string {
 	if (pathname === "/dashboard") return "Dashboard";
 	if (pathname === "/calendar") return "Calendar";
 	if (pathname.startsWith("/study-buddies")) return "Study Buddies";
-	if (pathname.startsWith("/messages")) return "Direct messages";
+	if (pathname.startsWith("/messages")) return "Messages";
 	if (pathname.startsWith("/settings")) return "Settings";
 	if (pathname === "/upload") return "Upload Syllabus";
 	if (pathname.startsWith("/course/")) return "Course Detail";
@@ -22,58 +22,77 @@ function getPageTitle(pathname: string): string {
 
 export function TopBar({ user, onMenuPress }: TopBarProps) {
 	const pathname = usePathname();
+	const router = useRouter();
 	const title = getPageTitle(pathname);
 	const initial = user.name?.charAt(0)?.toUpperCase() ?? "?";
 
 	return (
 		<XStack
-			height={56}
+			height={48}
 			px="$3"
-			$md={{ px: "$5" }}
+			$md={{ px: "$4" }}
 			items="center"
 			justify="space-between"
-			borderBottomWidth={1}
-			borderBottomColor="$gray5"
+			borderBottomWidth={2}
+			borderBottomColor="$gray6"
 			bg="$background"
 		>
 			<XStack items="center" gap="$3">
-				{/* Mobile menu button - hidden on md+ */}
+				{/* Mobile only: hamburger */}
 				<Button
-					size="$3"
+					size="$2"
 					circular
-					icon={<Menu size={20} />}
+					icon={<Menu size={18} />}
+					variant="outlined"
 					display="flex"
 					$md={{ display: "none" }}
 					onPress={onMenuPress}
 				/>
-				{/* Mobile wordmark - hidden on md+ */}
+				{/* Mobile only: wordmark */}
 				<SizableText
 					size="$5"
-					fontWeight="900"
+					fontFamily="$heading"
+					fontWeight="400"
 					color="$purple9"
 					display="flex"
 					$md={{ display: "none" }}
 				>
 					DueDeck
 				</SizableText>
-				{/* Page title - always visible */}
-				<SizableText size="$5" fontWeight="700">
+				{/* Desktop: page title */}
+				<H4
+					fontFamily="$heading"
+					color="$color12"
+					display="none"
+					$md={{ display: "flex" }}
+				>
 					{title}
-				</SizableText>
+				</H4>
 			</XStack>
 
-			<View
-				width={32}
-				height={32}
-				rounded="$10"
-				bg="$purple9"
-				items="center"
-				justify="center"
-			>
-				<SizableText color="white" size="$3" fontWeight="700">
-					{initial}
-				</SizableText>
-			</View>
+			<XStack items="center" gap="$2">
+				{/* Mobile only: upload icon */}
+				<Button
+					size="$2"
+					circular
+					icon={<Upload size={16} />}
+					variant="outlined"
+					display="flex"
+					$md={{ display: "none" }}
+					onPress={() => router.push("/upload")}
+				/>
+				<Avatar circular size="$2.5">
+					<Avatar.Fallback
+						bg="$purple9"
+						items="center"
+						justify="center"
+					>
+						<SizableText color="white" size="$2" fontWeight="700">
+							{initial}
+						</SizableText>
+					</Avatar.Fallback>
+				</Avatar>
+			</XStack>
 		</XStack>
 	);
 }

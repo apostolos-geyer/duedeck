@@ -1,8 +1,6 @@
 "use client";
 
-import { SizableText, Theme, View, XStack } from "@repo/ui";
-
-type DeadlineType = "assignment" | "exam" | "quiz" | "project" | "lab";
+import { ListItem, Paragraph, SizableText, Theme, View } from "@repo/ui";
 
 interface DeadlineCardProps {
 	deadline: {
@@ -33,101 +31,72 @@ function getRelativeDate(dateStr: string | Date): string {
 	return due.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function getTypeLabel(type: string): string {
-	const labels: Record<string, string> = {
-		assignment: "Assignment",
-		exam: "Exam",
-		quiz: "Quiz",
-		project: "Project",
-		lab: "Lab",
-	};
-	return labels[type] ?? type;
+function isOverdue(dateStr: string | Date): boolean {
+	return new Date(dateStr).getTime() < Date.now();
 }
 
 function isUrgent(dateStr: string | Date): boolean {
-	const now = new Date();
-	const due = new Date(dateStr);
-	const diffMs = due.getTime() - now.getTime();
+	const diffMs = new Date(dateStr).getTime() - Date.now();
 	const diffHours = diffMs / (1000 * 60 * 60);
 	return diffHours >= 0 && diffHours <= 48;
 }
 
 export function DeadlineCard({ deadline }: DeadlineCardProps) {
-	const urgent = isUrgent(deadline.dueDate);
 	const courseCode = deadline.section?.course?.code ?? "";
 	const courseTheme = deadline.section?.theme ?? "gray";
+	const overdue = !deadline.completed && isOverdue(deadline.dueDate);
+	const urgent = !deadline.completed && !overdue && isUrgent(deadline.dueDate);
+	const relDate = getRelativeDate(deadline.dueDate);
 
 	return (
 		<Theme name={courseTheme as any}>
-			<XStack
-				bg={urgent ? "$red2" : "$gray2"}
-				rounded="$3"
-				p="$2"
-				pl="$2"
-				gap="$3"
-				$sm={{ p: "$3" }}
-				items="center"
-				borderLeftWidth={4}
+			<ListItem
+				rounded={0}
+				borderLeftWidth={3}
 				borderLeftColor="$color9"
-				hoverStyle={{ bg: urgent ? "$red3" : "$gray3" }}
+				bg={overdue ? "$red2" : "transparent"}
+				hoverStyle={{ bg: overdue ? "$red3" : "$gray2" }}
+				pressStyle={{ bg: "$gray3" }}
 				opacity={deadline.completed ? 0.5 : 1}
-			>
-				{/* Course code badge */}
-				<View bg="$color9" rounded="$2" px="$2" py="$1">
-					<SizableText size="$1" fontWeight="700" color="white">
-						{courseCode}
-					</SizableText>
-				</View>
-
-				{/* Title */}
-				<SizableText
-					flex={1}
-					size="$3"
-					fontWeight="600"
-					color="$color12"
-					textDecorationLine={deadline.completed ? "line-through" : "none"}
-				>
-					{deadline.title}
-				</SizableText>
-
-				{/* Type pill */}
-				<View
-					bg="$gray4"
-					rounded="$10"
-					px="$2"
-					py="$1"
-					display="none"
-					$sm={{ display: "flex" }}
-				>
-					<SizableText size="$1" color="$gray11" fontWeight="500">
-						{getTypeLabel(deadline.type)}
-					</SizableText>
-				</View>
-
-				{/* Weight */}
-				<View minW={40} display="none" $sm={{ display: "flex" }}>
-					<SizableText
-						size="$2"
-						fontWeight="700"
-						color="$gray10"
-						text="right"
+				py="$2"
+				px="$3"
+				icon={
+					<View
+						bg="$color9"
+						rounded={0}
+						px="$2"
+						py="$1"
 					>
-						{deadline.weight}%
+						<SizableText size="$1" fontWeight="700" color="white">
+							{courseCode}
+						</SizableText>
+					</View>
+				}
+				title={
+					<Paragraph
+						size="$3"
+						fontWeight="500"
+						color="$color12"
+						textDecorationLine={deadline.completed ? "line-through" : "none"}
+					>
+						{deadline.title}
+					</Paragraph>
+				}
+				subTitle={
+					<SizableText size="$1" color="$gray9">
+						{deadline.type} · {deadline.weight}%
 					</SizableText>
-				</View>
-
-				{/* Due date */}
-				<View minW={80}>
-					<SizableText
+				}
+				iconAfter={
+					<Paragraph
 						size="$2"
 						fontWeight="600"
-						color={urgent ? "$red10" : "$gray10"}
-						text="right"
+						color={overdue ? "$red10" : urgent ? "$orange10" : "$gray10"}
 					>
-						{getRelativeDate(deadline.dueDate)}
-					</SizableText>
-				</View>
-			</XStack>
+						{relDate}
+					</Paragraph>
+				}
+			/>
 		</Theme>
 	);
 }
