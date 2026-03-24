@@ -24,7 +24,7 @@ function isThisMonth(date: Date | string): boolean {
 }
 
 export function DashboardScreen() {
-	const { enrolledSections, upcomingDeadlines, isLoading } =
+	const { enrolledSections, upcomingDeadlines, courseTermsEnded, isLoading } =
 		useDashboardData();
 
 	if (isLoading) {
@@ -37,6 +37,7 @@ export function DashboardScreen() {
 
 	const sections = enrolledSections.data ?? [];
 	const deadlines = upcomingDeadlines.data ?? [];
+	const termsEndedBySection = courseTermsEnded.data ?? {};
 
 	const dueThisWeek = deadlines.filter(
 		(d) => !d.completed && isThisWeek(d.dueDate),
@@ -103,6 +104,9 @@ export function DashboardScreen() {
 								<CourseCard
 									section={section}
 									nextDeadline={nextDeadline}
+									courseTermEnded={
+										termsEndedBySection[section.id] ?? false
+									}
 								/>
 							</Link>
 						);

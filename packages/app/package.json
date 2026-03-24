@@ -14,7 +14,10 @@
     "./hooks": "./src/hooks/index.ts",
     "./workflows/*": "./src/workflows/*/index.ts",
     "./workflows/parse-document/extraction-schema": "./src/workflows/parse-document/extraction-schema.ts",
-    "./lib/deadline-theme": "./src/lib/deadline-theme.ts"
+    "./lib/deadline-theme": "./src/lib/deadline-theme.ts",
+    "./lib/calendar": "./src/lib/calendar/index.ts",
+    "./components/processing-banner": "./src/components/processing-banner.tsx",
+    "./contexts/active-run-context": "./src/contexts/active-run-context.tsx"
   },
   "peerDependencies": {
     "next": "*",
@@ -37,6 +40,7 @@
     "@tamagui/lucide-icons": "^2.0.0-rc.25",
     "@tanstack/react-query": "^5.90.0",
     "arktype": "^2.2.0",
+    "zod": "^3.25.0",
     "react": "^19.2.0",
     "workflow": "^4.2.0-beta.69"
   },

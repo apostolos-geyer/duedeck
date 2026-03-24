@@ -24,8 +24,14 @@ model User {
   documents     Document[]
   enrollments   Enrollment[]
   studyGroupMemberships StudyGroupMember[]
+  studyGroupsCreated    StudyGroup[]       @relation("StudyGroupCreator")
+  studyGroupActivityAsSubject StudyGroupActivity[] @relation("StudyGroupActivitySubject")
+  studyGroupActivityAsActor   StudyGroupActivity[] @relation("StudyGroupActivityActor")
   sentMessages  Message[]
+  directMessagesSent     DirectMessage[] @relation("DirectSent")
+  directMessagesReceived DirectMessage[] @relation("DirectReceived")
   calendarConnections CalendarConnection[]
+  calendarEventLinks CalendarEventLink[]
   reminderPreferences ReminderPreference[]
   @@unique([email])
   @@map("user")
@@ -137,6 +143,8 @@ model CourseSection {
   gradeWeights GradeWeight[]
   documents  Document[]
   enrollments Enrollment[]
+  /// One shared chat for everyone enrolled in this section ("class chat").
+  classChat  StudyGroup?   @relation("SectionClassChat")
 
   @@unique([courseId, term, section])
   @@index([courseId])
@@ -166,6 +174,7 @@ model Deadline {
   weight    Float
   completed Boolean       @default(false)
   section   CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  calendarEventLinks CalendarEventLink[]
 
   @@index([sectionId])
   @@index([dueDate])
@@ -188,14 +197,41 @@ model StudyGroup {
   id         String             @id @default(uuid())
   name       String
   courseId   String
+  /// When set, this is the canonical class chat for that section (enrollment required).
+  sectionId  String?            @unique
   maxMembers Int                @default(6)
+  /// Custom groups only: listed in course browse when true; when false, join via invite only.
+  isPublic   Boolean            @default(true)
+  /// Custom groups: user who created the group (manages visibility, size, kicking). Null on legacy rows.
+  createdById String?
   createdAt  DateTime           @default(now())
   course     Course             @relation(fields: [courseId], references: [id])
+  section    CourseSection?     @relation("SectionClassChat", fields: [sectionId], references: [id], onDelete: Cascade)
+  createdBy  User?              @relation("StudyGroupCreator", fields: [createdById], references: [id], onDelete: SetNull)
   members    StudyGroupMember[]
   messages   Message[]
+  activities StudyGroupActivity[]
 
   @@index([courseId])
+  @@index([sectionId])
   @@map("study_group")
+}
+
+/// Join / leave / kick events for group chat log (beside messages).
+model StudyGroupActivity {
+  id            String   @id @default(uuid())
+  groupId       String
+  /// member_joined | member_left | member_removed
+  type          String
+  subjectUserId String
+  actorUserId   String?
+  createdAt     DateTime @default(now())
+  group         StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  subject       User       @relation("StudyGroupActivitySubject", fields: [subjectUserId], references: [id], onDelete: Cascade)
+  actor         User?      @relation("StudyGroupActivityActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([groupId, createdAt])
+  @@map("study_group_activity")
 }
 
 model StudyGroupMember {
@@ -223,16 +259,51 @@ model Message {
   @@map("message")
 }
 
+/// 1:1 chat between two users who share at least one study group.
+model DirectMessage {
+  id          String   @id @default(uuid())
+  senderId    String
+  recipientId String
+  content     String
+  createdAt   DateTime @default(now())
+  sender      User     @relation("DirectSent", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("DirectReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, recipientId, createdAt])
+  @@index([recipientId, senderId, createdAt])
+  @@map("direct_message")
+}
+
 model CalendarConnection {
-  id        String  @id @default(uuid())
-  userId    String
-  provider  String
-  connected Boolean @default(false)
-  email     String?
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(uuid())
+  userId               String
+  provider             String
+  connected            Boolean   @default(false)
+  email                String?
+  accessToken          String?
+  refreshToken         String?
+  accessTokenExpiresAt DateTime?
+  providerAccountId    String?
+  scope                String?
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
   @@map("calendar_connection")
+}
+
+model CalendarEventLink {
+  id              String   @id @default(uuid())
+  userId          String
+  deadlineId      String
+  provider        String
+  externalEventId String
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deadline        Deadline @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deadlineId, provider])
+  @@index([userId, provider])
+  @@map("calendar_event_link")
 }
 
 model ReminderPreference {

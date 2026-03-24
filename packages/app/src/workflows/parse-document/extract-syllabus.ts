@@ -3,22 +3,38 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getWritable } from "workflow";
 import { s3, UPLOADS_BUCKET } from "@repo/storage";
 import {
-  syllabusExtractionSchema,
+  syllabusExtractionZodSchema,
   type SyllabusExtraction,
 } from "./extraction-schema";
 
-const EXTRACTION_PROMPT = `You are a syllabus parser. Extract ALL structured data from the following syllabus markdown.
+const EXTRACTION_PROMPT = `You are a syllabus parser. Output a single JSON object with exactly these top-level keys: courseInfo, gradeWeights, deadlines. No markdown fences, no commentary.
 
-Extract:
-1. **Course info**: school name, school abbreviation/short name, course code (e.g. "CS 490"), course name, section identifier, term (e.g. "Winter 2026"), instructor name.
-2. **Grade weights**: The grade breakdown categories with label, type (assignment/exam/quiz/project/participation/other), and weight percentage. These are the high-level categories like "Assignments 30%", "Final Exam 40%", etc.
-3. **Deadlines**: Every assignment, exam, quiz, project, or other graded deliverable with:
-   - title: the specific name (e.g. "Assignment 1", "Midterm Exam")
-   - dueDate: ISO 8601 format YYYY-MM-DD. If no specific date is given, estimate from context.
-   - type: one of assignment/exam/quiz/project/other
-   - weight: percentage of final grade. Distribute the category weight across items if individual weights aren't specified.
+## courseInfo (object)
+- schoolName: string
+- schoolShortName: string (abbreviation or short name for the school)
+- courseCode: string (e.g. "CS 490")
+- courseName: string
+- section: string (section identifier; use "001" if missing)
+- term: string (e.g. "Winter 2026"; infer from dates if needed)
+- instructor: string
 
-Return ONLY valid JSON matching the required schema.`;
+## gradeWeights (array of objects)
+Each item: { "label": string, "type": string, "weight": number }
+- label: category name from the syllabus (e.g. "Assignments", "Final Exam")
+- type: exactly one of: assignment, exam, quiz, project, participation, other
+- weight: percent of final grade (number, not a string)
+
+## deadlines (array of objects)
+Each item: { "title": string, "dueDate": string, "type": string, "weight": number }
+- title: specific item name (e.g. "Assignment 1", "Midterm")
+- dueDate: YYYY-MM-DD (ISO date string; estimate from context if only relative dates exist)
+- type: exactly one of: assignment, exam, quiz, project, other (deadlines do not use "participation" — use "other" if needed)
+- weight: percent of final grade for this item (number). Split a category's weight across its items when individual weights are not given.
+
+Rules:
+- Output only valid JSON matching this shape.
+- Do not include any keys other than courseInfo, gradeWeights, deadlines.
+- Do not nest courseInfo fields at the top level.`;
 
 export async function fetchMarkdown(parsedS3Key: string): Promise<string> {
   "use step";
@@ -38,8 +54,8 @@ export async function extractSyllabusData(
   const writer = aiStream.getWriter();
 
   const result = streamText({
-    model: gateway("openai/gpt-oss-120b"),
-    output: Output.object({ schema: syllabusExtractionSchema }),
+    model: gateway("google/gemini-2.5-flash"),
+    output: Output.object({ schema: syllabusExtractionZodSchema }),
     prompt: `${EXTRACTION_PROMPT}\n\n---\n\n${markdown}`,
   });
 
@@ -56,5 +72,5 @@ export async function extractSyllabusData(
     throw new Error("AI extraction returned no structured output");
   }
 
-  return output;
+  return output as SyllabusExtraction;
 }

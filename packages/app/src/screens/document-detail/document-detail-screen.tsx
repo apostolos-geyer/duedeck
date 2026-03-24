@@ -87,18 +87,36 @@ export function DocumentDetailScreen({ docId }: DocumentDetailScreenProps) {
 						{doc.filename}
 					</H2>
 				</XStack>
-				<XStack items="center" gap="$3">
-					<Theme name={statusInfo.theme}>
-						<View bg="$color9" rounded="$10" px="$2" py="$1">
-							<SizableText size="$1" fontWeight="600" color="white">
-								{statusInfo.label}
-							</SizableText>
-						</View>
-					</Theme>
-					<SizableText size="$2" color="$gray8">
-						Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
+			<XStack items="center" gap="$3">
+				<Theme name={statusInfo.theme}>
+					<View bg="$color9" rounded="$10" px="$2" py="$1">
+						<SizableText size="$1" fontWeight="600" color="white">
+							{statusInfo.label}
+						</SizableText>
+					</View>
+				</Theme>
+				<SizableText size="$2" color="$gray8">
+					Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
+				</SizableText>
+			</XStack>
+			{doc.status === "failed" && doc.error && (
+				<YStack bg="$red3" rounded="$4" p="$3" gap="$2">
+					<SizableText size="$3" fontWeight="600" color="$red11">
+						Processing failed
 					</SizableText>
-				</XStack>
+					<SizableText size="$2" color="$red10">
+						{doc.error}
+					</SizableText>
+					<Button
+						theme="purple"
+						size="$3"
+						alignSelf="flex-start"
+						onPress={() => router.push("/upload")}
+					>
+						Try Again
+					</Button>
+				</YStack>
+			)}
 			</YStack>
 
 			{/* Tab switcher */}
@@ -117,7 +135,7 @@ export function DocumentDetailScreen({ docId }: DocumentDetailScreenProps) {
 				>
 					PDF
 				</Button>
-				{doc.parsedS3Key && (
+				{!!doc.parsedS3Key && (
 					<Button
 						size="$3"
 						theme={activeTab === "markdown" ? "purple" : "gray"}
@@ -133,7 +151,7 @@ export function DocumentDetailScreen({ docId }: DocumentDetailScreenProps) {
 				<PdfViewer s3Key={doc.s3Key} />
 			)}
 
-			{activeTab === "markdown" && doc.parsedS3Key && (
+			{activeTab === "markdown" && !!doc.parsedS3Key && (
 				<MarkdownViewer s3Key={doc.parsedS3Key} />
 			)}
 

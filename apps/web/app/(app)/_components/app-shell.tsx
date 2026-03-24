@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { View, XStack, YStack } from "@repo/ui";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { ProcessingBanner } from "@repo/app/components/processing-banner";
+import { orpc } from "@/lib/rpc-client";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
 
@@ -14,6 +16,7 @@ interface AppShellProps {
 export function AppShell({ user, children }: AppShellProps) {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const pathname = usePathname();
+	const router = useRouter();
 
 	// Close sidebar on route change (mobile)
 	useEffect(() => {
@@ -66,6 +69,7 @@ export function AppShell({ user, children }: AppShellProps) {
 
 			<YStack flex={1} overflow="hidden">
 				<TopBar user={user} onMenuPress={toggleSidebar} />
+				<ProcessingBanner orpc={orpc} onNavigate={(p) => router.push(p)} />
 				<YStack flex={1} overflow="scroll" p="$3" $md={{ p: "$5" }}>
 					{children}
 				</YStack>

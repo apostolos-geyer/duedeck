@@ -20,25 +20,43 @@ export function GradeBreakdown({ weights }: GradeBreakdownProps) {
 			<YStack gap="$2">
 				{weights.map((w) => (
 					<XStack key={w.label} gap="$3" items="center">
-						<View minW={80} $sm={{ minW: 140 }}>
-							<SizableText size="$3" fontWeight="500" color="$color12">
+						<View
+							width={112}
+							flexShrink={0}
+							$sm={{ width: 160 }}
+						>
+							<SizableText
+								size="$3"
+								fontWeight="500"
+								color="$color12"
+								numberOfLines={2}
+							>
 								{w.label}
 							</SizableText>
 						</View>
-						<View flex={1}>
+						<View flex={1} minW={0}>
 							<View
-								width={`${w.weight}%` as any}
+								width="100%"
 								height={24}
-								bg="$color9"
+								bg="$gray4"
 								rounded="$2"
-							/>
+								overflow="hidden"
+							>
+								<View
+									width={`${w.weight}%` as any}
+									height="100%"
+									bg="$color9"
+									rounded="$2"
+								/>
+							</View>
 						</View>
-						<View minW={40}>
+						<View width={44} flexShrink={0} items="flex-end">
 							<SizableText
 								size="$3"
 								fontWeight="700"
 								color="$gray10"
 								text="right"
+								fontVariant="tabular-nums"
 							>
 								{w.weight}%
 							</SizableText>

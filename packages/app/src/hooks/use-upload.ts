@@ -50,3 +50,8 @@ export function useCancelDocument() {
 	return useMutation(orpc.documents.cancel.mutationOptions());
 }
 
+export function useCancelActiveDocuments() {
+	const orpc = useOrpc();
+	return useMutation(orpc.documents.cancelActive.mutationOptions());
+}
+

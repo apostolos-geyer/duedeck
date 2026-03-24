@@ -13,6 +13,7 @@ function getPageTitle(pathname: string): string {
 	if (pathname === "/dashboard") return "Dashboard";
 	if (pathname === "/calendar") return "Calendar";
 	if (pathname.startsWith("/study-buddies")) return "Study Buddies";
+	if (pathname.startsWith("/messages")) return "Direct messages";
 	if (pathname.startsWith("/settings")) return "Settings";
 	if (pathname === "/upload") return "Upload Syllabus";
 	if (pathname.startsWith("/course/")) return "Course Detail";

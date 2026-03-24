@@ -11,7 +11,7 @@ export function CalendarScreen() {
 	const [currentDate, setCurrentDate] = useState(
 		() => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
 	);
-	const { data: deadlines, isLoading } = useCalendarDeadlines();
+	const { data: deadlines, isLoading } = useCalendarDeadlines(currentDate);
 
 	function handlePrev() {
 		setCurrentDate(
@@ -40,7 +40,9 @@ export function CalendarScreen() {
 				onPrev={handlePrev}
 				onNext={handleNext}
 			/>
-			<CalendarGrid currentDate={currentDate} deadlines={deadlines ?? []} />
+			<YStack overflow="visible" width="100%">
+				<CalendarGrid currentDate={currentDate} deadlines={deadlines ?? []} />
+			</YStack>
 			<CalendarSyncPanel />
 		</YStack>
 	);

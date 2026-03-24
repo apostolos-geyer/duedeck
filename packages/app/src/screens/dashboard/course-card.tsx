@@ -14,9 +14,15 @@ interface CourseCardProps {
 		title: string;
 		dueDate: string | Date;
 	};
+	/** Latest syllabus deadline is in the past (course has at least one deadline). */
+	courseTermEnded?: boolean;
 }
 
-export function CourseCard({ section, nextDeadline }: CourseCardProps) {
+export function CourseCard({
+	section,
+	nextDeadline,
+	courseTermEnded,
+}: CourseCardProps) {
 	return (
 		<Theme name={section.theme as any}>
 			<YStack
@@ -30,6 +36,20 @@ export function CourseCard({ section, nextDeadline }: CourseCardProps) {
 				pressStyle={{ scale: 0.97, opacity: 0.85 }}
 				cursor="pointer"
 			>
+				{courseTermEnded ? (
+					<View
+						self="flex-start"
+						bg="$gray8"
+						rounded="$10"
+						px="$2.5"
+						py="$1"
+					>
+						<SizableText size="$1" fontWeight="700" color="white">
+							All deadlines passed
+						</SizableText>
+					</View>
+				) : null}
+
 				{/* Course code */}
 				<SizableText
 					size="$6"

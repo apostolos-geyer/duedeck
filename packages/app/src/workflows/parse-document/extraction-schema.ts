@@ -1,4 +1,49 @@
 import { type } from "arktype";
+import { z } from "zod";
+
+/** Zod mirror of `syllabusExtractionSchema` — use with AI SDK `Output.object` (ArkType is not supported there). */
+const deadlineTypeZod = z.enum([
+	"assignment",
+	"exam",
+	"quiz",
+	"project",
+	"other",
+]);
+const gradeWeightTypeZod = z.enum([
+	"assignment",
+	"exam",
+	"quiz",
+	"project",
+	"participation",
+	"other",
+]);
+
+export const syllabusExtractionZodSchema = z.object({
+	courseInfo: z.object({
+		schoolName: z.string(),
+		schoolShortName: z.string(),
+		courseCode: z.string(),
+		courseName: z.string(),
+		section: z.string(),
+		term: z.string(),
+		instructor: z.string(),
+	}),
+	gradeWeights: z.array(
+		z.object({
+			label: z.string(),
+			type: gradeWeightTypeZod,
+			weight: z.number(),
+		}),
+	),
+	deadlines: z.array(
+		z.object({
+			title: z.string(),
+			dueDate: z.string(),
+			type: deadlineTypeZod,
+			weight: z.number(),
+		}),
+	),
+});
 
 export const courseInfoSchema = type({
 	schoolName: "string",

@@ -18,9 +18,14 @@ export function useReminderPreferences() {
 	return useQuery(orpc.settings.reminderPreferences.queryOptions({}));
 }
 
-export function useToggleCalendar() {
+export function useDisconnectCalendar() {
 	const orpc = useOrpc();
-	return useMutation(orpc.settings.toggleCalendar.mutationOptions());
+	return useMutation(orpc.settings.disconnectCalendar.mutationOptions());
+}
+
+export function useSyncGoogleCalendar() {
+	const orpc = useOrpc();
+	return useMutation(orpc.settings.syncGoogleCalendar.mutationOptions());
 }
 
 export function useUpdateReminders() {
