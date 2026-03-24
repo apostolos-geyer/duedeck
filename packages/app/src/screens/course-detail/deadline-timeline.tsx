@@ -1,6 +1,6 @@
 "use client";
 
-import { AppCard, H3, ListItem, SizableText, View, XStack, YStack } from "@repo/ui";
+import { AppCard, BrutalistListItem, H3, SizableText, View, XStack, YStack } from "@repo/ui";
 
 interface Deadline {
 	id: string;
@@ -60,7 +60,7 @@ export function DeadlineTimeline({ deadlines }: DeadlineTimelineProps) {
 						const overdue = isOverdue(deadline);
 
 						return (
-							<ListItem
+							<BrutalistListItem
 								key={deadline.id}
 								bg={
 									overdue

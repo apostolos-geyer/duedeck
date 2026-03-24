@@ -1,6 +1,6 @@
 "use client";
 
-import { ListItem, Paragraph, SizableText, Theme, View } from "@repo/ui";
+import { BrutalistListItem, Paragraph, SizableText, Theme, View } from "@repo/ui";
 
 interface DeadlineCardProps {
 	deadline: {
@@ -50,7 +50,7 @@ export function DeadlineCard({ deadline }: DeadlineCardProps) {
 
 	return (
 		<Theme name={courseTheme as any}>
-			<ListItem
+			<BrutalistListItem
 				rounded={0}
 				borderLeftWidth={3}
 				borderLeftColor="$color9"

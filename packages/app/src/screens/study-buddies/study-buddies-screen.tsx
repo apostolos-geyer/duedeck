@@ -1,9 +1,9 @@
 "use client";
 
 import {
+  BrutalistListItem,
   Button,
   H4,
-  ListItem,
   Paragraph,
   Separator,
   SizableText,
@@ -138,7 +138,7 @@ export function StudyBuddiesScreen({
         ) : (
           <YStack gap="$1">
             {(myClasses ?? []).map((row) => (
-              <ListItem
+              <BrutalistListItem
                 key={row.sectionId}
                 rounded={0}
                 hoverStyle={{ bg: "$gray3" }}
@@ -181,7 +181,7 @@ export function StudyBuddiesScreen({
 
               return (
                 <YStack key={g.id}>
-                  <ListItem
+                  <BrutalistListItem
                     rounded={0}
                     hoverStyle={{ bg: "$gray3" }}
                     pressStyle={{ bg: "$gray4" }}

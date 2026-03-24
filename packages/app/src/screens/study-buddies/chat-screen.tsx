@@ -111,8 +111,8 @@ export function ChatScreen({ groupId, onNavigateBack }: ChatScreenProps) {
             {group.members.slice(0, 5).map((member, i) => (
               <View
                 key={member.userId}
-                w={28}
-                h={28}
+                width={28}
+                height={28}
                 rounded={14}
                 bg="$purple6"
                 items="center"
