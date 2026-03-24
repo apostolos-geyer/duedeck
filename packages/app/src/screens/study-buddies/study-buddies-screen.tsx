@@ -2,7 +2,6 @@
 
 import {
   Button,
-  H3,
   H4,
   ListItem,
   Paragraph,
@@ -920,11 +919,6 @@ export function StudyBuddiesScreen({
   if (isDesktop) {
     return (
       <YStack width="100%" height="100%">
-        <YStack px="$3" py="$2">
-          <H3 fontFamily="$heading" fontWeight="800" color="$color12">
-            Study Buddies
-          </H3>
-        </YStack>
         <XStack flex={1} overflow="hidden">
           {/* Left panel */}
           <YStack
@@ -1011,11 +1005,6 @@ export function StudyBuddiesScreen({
 
   return (
     <YStack width="100%" height="100%" gap="$2">
-      <YStack px="$3" py="$2">
-        <H3 fontFamily="$heading" fontWeight="800" color="$color12">
-          Study Buddies
-        </H3>
-      </YStack>
       <YStack flex={1} overflow="scroll">
         <LeftPanelContent {...leftPanelProps} />
       </YStack>

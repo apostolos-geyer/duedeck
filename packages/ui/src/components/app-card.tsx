@@ -12,7 +12,7 @@ export const AppCard = styled(Card, {
       elevated: {
         bg: "$background",
         borderColor: "$gray4",
-        elevation: "$1",
+        elevation: "$3",
       },
       flat: {
         bg: "$gray2",
