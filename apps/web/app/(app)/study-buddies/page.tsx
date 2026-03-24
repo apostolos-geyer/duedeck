@@ -1,18 +1,27 @@
+"use client";
+
 import { StudyBuddiesScreen } from "@repo/app/screens/study-buddies";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 
-/** Avoid serving a stale RSC/SSR snapshot of this client tree after UI copy changes. */
-export const dynamic = "force-dynamic";
+export default function StudyBuddiesPage() {
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const sectionId = searchParams.get("sectionId") ?? undefined;
+	const groupId = searchParams.get("groupId") ?? undefined;
 
-export default async function StudyBuddiesPage({
-	searchParams,
-}: {
-	searchParams: Promise<{ sectionId?: string; groupId?: string }>;
-}) {
-	const { sectionId, groupId } = await searchParams;
+	const navigateToChat = useCallback(
+		(gId: string) => {
+			router.push(`/study-buddies/chat/${gId}`);
+		},
+		[router],
+	);
+
 	return (
 		<StudyBuddiesScreen
 			initialSectionId={sectionId}
 			initialGroupId={groupId}
+			onNavigateToChat={navigateToChat}
 		/>
 	);
 }
