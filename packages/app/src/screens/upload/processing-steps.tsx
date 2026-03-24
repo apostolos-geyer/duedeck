@@ -62,7 +62,25 @@ function useProgressState(events: ProgressEvent[]) {
 		return events.find((e) => e.step === "done" && e.status === "done");
 	}, [events]);
 
-	return { completedSteps, activeStep, doneEvent };
+	// Extract chunk progress detail from extracting events
+	const extractionDetail = useMemo((): string | null => {
+		for (let i = events.length - 1; i >= 0; i--) {
+			const evt = events[i];
+			if (evt?.step !== "extracting" || evt.status !== "start") continue;
+			if (evt.data?.mode !== "chunked") continue;
+
+			const total = evt.data.totalChunks as number;
+			const relevant = evt.data.relevantChunks as number | undefined;
+
+			if (evt.data.phase === "screening_done" && relevant != null) {
+				return `Extracting from ${relevant} of ${total} pages`;
+			}
+			return `Screening ${total} pages`;
+		}
+		return null;
+	}, [events]);
+
+	return { completedSteps, activeStep, doneEvent, extractionDetail };
 }
 
 // ── Compact horizontal stepper (always visible) ─────────────────────
@@ -166,7 +184,7 @@ interface ProcessingStepsProps {
 }
 
 export function ProcessingSteps({ events, onComplete }: ProcessingStepsProps) {
-	const { completedSteps, activeStep, doneEvent } =
+	const { completedSteps, activeStep, doneEvent, extractionDetail } =
 		useProgressState(events);
 
 	useEffect(() => {
@@ -205,19 +223,31 @@ export function ProcessingSteps({ events, onComplete }: ProcessingStepsProps) {
 								) : null}
 							</View>
 
-							<SizableText
-								size="$4"
-								fontWeight={isActive ? "700" : "400"}
-								color={
-									isCompleted
-										? "$green9"
-										: isActive
-											? "$color12"
-											: "$gray8"
-								}
-							>
-								{STEP_LABELS[step]}
-							</SizableText>
+							<YStack>
+								<SizableText
+									size="$4"
+									fontWeight={isActive ? "700" : "400"}
+									color={
+										isCompleted
+											? "$green9"
+											: isActive
+												? "$color12"
+												: "$gray8"
+									}
+								>
+									{STEP_LABELS[step]}
+								</SizableText>
+								{step === "extracting" &&
+									isActive &&
+									extractionDetail && (
+										<SizableText
+											size="$2"
+											color="$gray9"
+										>
+											{extractionDetail}
+										</SizableText>
+									)}
+							</YStack>
 						</XStack>
 
 						{index < STEP_ORDER.length - 1 && (

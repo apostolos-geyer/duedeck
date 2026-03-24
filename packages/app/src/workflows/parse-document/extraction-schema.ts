@@ -45,6 +45,49 @@ export const syllabusExtractionZodSchema = z.object({
 	),
 });
 
+/** Schema for screening a chunk — just a yes/no relevance check. */
+export const chunkRelevanceZodSchema = z.object({
+	relevant: z.boolean(),
+});
+
+/** Partial extraction schema — each field optional since a single chunk may only contain some data. */
+export const partialSyllabusExtractionZodSchema = z.object({
+	courseInfo: z
+		.object({
+			schoolName: z.string().optional(),
+			schoolShortName: z.string().optional(),
+			courseCode: z.string().optional(),
+			courseName: z.string().optional(),
+			section: z.string().optional(),
+			term: z.string().optional(),
+			instructor: z.string().optional(),
+		})
+		.optional(),
+	gradeWeights: z
+		.array(
+			z.object({
+				label: z.string(),
+				type: gradeWeightTypeZod,
+				weight: z.number(),
+			}),
+		)
+		.optional(),
+	deadlines: z
+		.array(
+			z.object({
+				title: z.string(),
+				dueDate: z.string(),
+				type: deadlineTypeZod,
+				weight: z.number(),
+			}),
+		)
+		.optional(),
+});
+
+export type PartialSyllabusExtraction = z.infer<
+	typeof partialSyllabusExtractionZodSchema
+>;
+
 export const courseInfoSchema = type({
 	schoolName: "string",
 	schoolShortName: "string",

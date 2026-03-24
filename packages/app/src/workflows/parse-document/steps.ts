@@ -173,6 +173,38 @@ export async function handleParseCallback(
 	};
 }
 
+/** Derive the content_list S3 key from the parsed markdown key. */
+export function contentListKeyFromParsedKey(parsedS3Key: string): string {
+	return parsedS3Key.replace(/\.parsed\.md$/, ".content_list.json");
+}
+
+export interface ContentBlock {
+	type: string;
+	text?: string;
+	text_level?: number;
+	img_path?: string;
+	html?: string;
+	bbox?: [number, number, number, number];
+	page_idx: number;
+}
+
+export async function fetchContentList(
+	parsedS3Key: string,
+): Promise<ContentBlock[] | null> {
+	"use step";
+	const key = contentListKeyFromParsedKey(parsedS3Key);
+	try {
+		const resp = await s3.send(
+			new GetObjectCommand({ Bucket: UPLOADS_BUCKET, Key: key }),
+		);
+		const json = await resp.Body!.transformToString("utf-8");
+		return JSON.parse(json) as ContentBlock[];
+	} catch {
+		// content_list not available (old Hermes, generation failed, etc.)
+		return null;
+	}
+}
+
 export async function saveExtraction(
 	docId: string,
 	extraction: SyllabusExtraction,

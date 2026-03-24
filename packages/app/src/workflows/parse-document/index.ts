@@ -7,6 +7,7 @@ import {
 	createDocumentRecord,
 	triggerHermesParse,
 	handleParseCallback,
+	fetchContentList,
 	saveExtraction,
 	commitExtractedData,
 	cancelDocument,
@@ -17,6 +18,10 @@ import {
 import {
 	fetchMarkdown,
 	extractSyllabusData,
+	groupByPage,
+	screenChunk,
+	extractChunk,
+	mergeExtractions,
 } from "./extract-syllabus";
 import type { ConfirmationPayload, SyllabusExtraction } from "./extraction-schema";
 
@@ -175,7 +180,7 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 			s3Key: input.s3Key,
 		});
 
-		// 5. Extract all syllabus data
+		// 5. Extract syllabus data — chunked if content_list available, else single-shot
 		let extraction: SyllabusExtraction;
 		if (priorExtraction) {
 			await writeProgress("extracting", "start");
@@ -184,7 +189,48 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 		} else {
 			await writeProgress("extracting", "start");
 			try {
-				extraction = await extractSyllabusData(markdownContent);
+				// Try chunked extraction via content_list
+				const contentList = await fetchContentList(parsedS3Key);
+				if (contentList && contentList.length > 0) {
+					const chunks = groupByPage(contentList);
+					await writeProgress("extracting", "start", {
+						mode: "chunked",
+						totalChunks: chunks.length,
+					});
+
+					// 5a. Screen chunks for relevance (parallel, fast model)
+					const screenResults = await Promise.all(
+						chunks.map((chunk, i) => screenChunk(chunk, i)),
+					);
+					const relevantChunks = chunks.filter(
+						(_, i) => screenResults[i],
+					);
+
+					await writeProgress("extracting", "start", {
+						mode: "chunked",
+						phase: "screening_done",
+						totalChunks: chunks.length,
+						relevantChunks: relevantChunks.length,
+					});
+
+					if (relevantChunks.length === 0) {
+						// Nothing relevant found — fall back to single-shot
+						extraction = await extractSyllabusData(markdownContent);
+					} else {
+						// 5b. Extract from relevant chunks (parallel, full model)
+						const partials = await Promise.all(
+							relevantChunks.map((chunk, i) =>
+								extractChunk(chunk, i),
+							),
+						);
+
+						// 5c. Merge partial extractions
+						extraction = mergeExtractions(partials);
+					}
+				} else {
+					// No content_list — fall back to single-shot
+					extraction = await extractSyllabusData(markdownContent);
+				}
 			} catch (err) {
 				const msg = `AI extraction failed: ${err instanceof Error ? err.message : String(err)}`;
 				await failDocument(docId, msg);
