@@ -10,7 +10,7 @@ import {
 } from "@repo/ui";
 import { ChevronRight } from "@tamagui/lucide-icons";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCurrentUser } from "../../hooks/use-settings";
 import {
   useBrowseCourses,
@@ -293,14 +293,44 @@ function GroupsList({
 export interface StudyBuddiesScreenProps {
   /** Deep-link from course page: opens the section class chat after load. */
   initialSectionId?: string;
+  /** Deep-link: opens a specific study group chat after load. */
+  initialGroupId?: string;
 }
 
 export function StudyBuddiesScreen({
   initialSectionId,
+  initialGroupId,
 }: StudyBuddiesScreenProps = {}) {
   const [state, setState] = useState<DrillState>({ level: "schools" });
-  const [focusedGroup, setFocusedGroup] = useState<FocusedStudyGroup | null>(
+  const [focusedGroup, setFocusedGroupRaw] = useState<FocusedStudyGroup | null>(
     null,
+  );
+
+  /** Wrapper that syncs the URL whenever the focused group changes. */
+  const setFocusedGroup = useCallback(
+    (
+      next:
+        | FocusedStudyGroup
+        | null
+        | ((prev: FocusedStudyGroup | null) => FocusedStudyGroup | null),
+    ) => {
+      setFocusedGroupRaw((prev) => {
+        const value = typeof next === "function" ? next(prev) : next;
+        if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          if (value) {
+            url.searchParams.set("groupId", value.id);
+            url.searchParams.delete("sectionId");
+          } else {
+            url.searchParams.delete("groupId");
+            url.searchParams.delete("sectionId");
+          }
+          window.history.replaceState({}, "", url.toString());
+        }
+        return value;
+      });
+    },
+    [],
   );
   const [browseOpen, setBrowseOpen] = useState(false);
   const [createCustomGroupOpen, setCreateCustomGroupOpen] = useState(false);
@@ -334,6 +364,29 @@ export function StudyBuddiesScreen({
       },
     );
   }, [initialSectionId, ensureClassChat.mutate]);
+
+  // Restore focused group from ?groupId= deep-link
+  const handledInitialGroupRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialGroupId || myClassesLoading || myCustomLoading) return;
+    if (handledInitialGroupRef.current === initialGroupId) return;
+    handledInitialGroupRef.current = initialGroupId;
+    // Check class chats
+    const classRow = myClasses?.find(
+      (r) => r.classChat?.id === initialGroupId,
+    );
+    if (classRow?.classChat) {
+      setFocusedGroup(toFocusedGroup(classRow.classChat));
+      return;
+    }
+    // Check custom groups
+    const customRow = myCustomRows?.find(
+      (r) => r.group.id === initialGroupId,
+    );
+    if (customRow) {
+      setFocusedGroup(toFocusedGroup(customRow.group));
+    }
+  }, [initialGroupId, myClasses, myCustomRows, myClassesLoading, myCustomLoading, setFocusedGroup]);
 
   function handleOpenClassChat(sectionId: string) {
     const row = myClasses?.find((r) => r.sectionId === sectionId);
@@ -402,7 +455,7 @@ export function StudyBuddiesScreen({
               Private
             </SizableText>
           ) : null}
-          {focusedGroup.sectionId !== null ? (
+          {isCustomStudyGroup ? (
             <Button
               size="$3"
               theme="purple"
@@ -459,18 +512,23 @@ export function StudyBuddiesScreen({
           />
         </YStack>
 
-        {focusedGroup.sectionId !== null ? (
-          <InviteClassToStudyGroupSheet
-            open={inviteFromClassOpen}
-            onOpenChange={setInviteFromClassOpen}
-            sectionId={focusedGroup.sectionId}
-            courseId={focusedGroup.courseId}
-            onRequestCreateGroup={() => {
-              setInviteFromClassOpen(false);
-              setCreateCustomGroupOpen(true);
-            }}
-          />
-        ) : null}
+        {(() => {
+          // For custom groups, resolve sectionId from the user's enrolled sections
+          const inviteSectionId = focusedGroup.sectionId
+            ?? myClasses?.find((r) => r.courseId === focusedGroup.courseId)?.sectionId;
+          return isCustomStudyGroup && inviteSectionId ? (
+            <InviteClassToStudyGroupSheet
+              open={inviteFromClassOpen}
+              onOpenChange={setInviteFromClassOpen}
+              sectionId={inviteSectionId}
+              courseId={focusedGroup.courseId}
+              onRequestCreateGroup={() => {
+                setInviteFromClassOpen(false);
+                setCreateCustomGroupOpen(true);
+              }}
+            />
+          ) : null;
+        })()}
 
         {canManageCustomStudyGroup ? (
           <StudyGroupSettingsSheet

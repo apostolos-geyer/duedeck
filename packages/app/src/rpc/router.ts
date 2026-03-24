@@ -869,6 +869,7 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 
     return rows.map((e) => ({
       sectionId: e.sectionId,
+      courseId: e.section.course.id,
       term: e.section.term,
       sectionCode: e.section.section,
       courseCode: e.section.course.code,

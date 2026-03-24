@@ -6,8 +6,13 @@ export const dynamic = "force-dynamic";
 export default async function StudyBuddiesPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ sectionId?: string }>;
+	searchParams: Promise<{ sectionId?: string; groupId?: string }>;
 }) {
-	const { sectionId } = await searchParams;
-	return <StudyBuddiesScreen initialSectionId={sectionId} />;
+	const { sectionId, groupId } = await searchParams;
+	return (
+		<StudyBuddiesScreen
+			initialSectionId={sectionId}
+			initialGroupId={groupId}
+		/>
+	);
 }
