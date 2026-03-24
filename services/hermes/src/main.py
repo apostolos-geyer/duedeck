@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import tempfile
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 # MinerU expects a USERNAME env var; Windows may not set one in all contexts
@@ -26,10 +28,35 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     max_document_size: ByteSize = "50MB"
 
+    # GPU / device settings
+    gpu_memory_gb: int = 64  # PyTorch max memory allocation in GB
+    device: str = "mps"  # "mps" for Apple Silicon, "cuda" for NVIDIA, "cpu" to disable
+    max_parse_workers: int = 4  # concurrent parse jobs
+
 
 settings = Settings()
 
+# Configure GPU memory before any torch import
+if settings.device == "mps":
+    # Apple Silicon: allow PyTorch to use up to the full unified memory
+    os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.0")  # no limit
+elif settings.device == "cuda":
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", f"max_split_size_mb:{settings.gpu_memory_gb * 1024}")
+
 app = FastAPI(title="Hermes", version="0.1.0")
+_parse_pool: ProcessPoolExecutor | None = None
+
+
+@app.on_event("startup")
+async def _startup():
+    global _parse_pool
+    _parse_pool = ProcessPoolExecutor(max_workers=settings.max_parse_workers)
+
+
+@app.on_event("shutdown")
+async def _shutdown():
+    if _parse_pool:
+        _parse_pool.shutdown(wait=False)
 
 s3 = boto3.client(
     "s3",
@@ -99,62 +126,79 @@ async def health():
     return {"status": "ok"}
 
 
-async def _do_parse(req: ParseRequest):
-    """Download PDF from S3, parse with MinerU, upload result, call webhook."""
-    # Lazy import so the server starts fast and /health works without models
+def _sync_parse(req_data: dict, s3_config: dict) -> dict:
+    """Run MinerU parsing in a separate process (CPU/GPU-heavy work)."""
     from mineru.cli.fast_api import aio_do_parse, read_fn
 
-    result: ParseResult
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=s3_config["endpoint"],
+        aws_access_key_id=s3_config["access_key"],
+        aws_secret_access_key=s3_config["secret_key"],
+        region_name=s3_config["region"],
+    )
+
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
-            # 1. Download PDF from S3
             pdf_path = Path(tmpdir) / "input.pdf"
-            s3.download_file(settings.s3_bucket, req.s3_key, str(pdf_path))
+            s3_client.download_file(s3_config["bucket"], req_data["s3_key"], str(pdf_path))
 
-            # 2. Read and convert to PDF bytes (handles images too)
             pdf_bytes = read_fn(pdf_path)
-            pdf_name = Path(req.s3_key).stem
+            pdf_name = Path(req_data["s3_key"]).stem
 
-            # 3. Parse with MinerU
             output_dir = str(Path(tmpdir) / "output")
-            await aio_do_parse(
-                output_dir=output_dir,
-                pdf_file_names=[pdf_name],
-                pdf_bytes_list=[pdf_bytes],
-                p_lang_list=[req.lang],
-                backend=req.backend,
-                parse_method=req.parse_method,
-                formula_enable=True,
-                table_enable=True,
-                f_draw_layout_bbox=False,
-                f_draw_span_bbox=False,
-                f_dump_md=True,
-                f_dump_middle_json=False,
-                f_dump_model_output=False,
-                f_dump_orig_pdf=False,
-                f_dump_content_list=False,
+            # aio_do_parse is async — run it in a new event loop for this process
+            asyncio.run(
+                aio_do_parse(
+                    output_dir=output_dir,
+                    pdf_file_names=[pdf_name],
+                    pdf_bytes_list=[pdf_bytes],
+                    p_lang_list=[req_data["lang"]],
+                    backend=req_data["backend"],
+                    parse_method=req_data["parse_method"],
+                    formula_enable=True,
+                    table_enable=True,
+                    f_draw_layout_bbox=False,
+                    f_draw_span_bbox=False,
+                    f_dump_md=True,
+                    f_dump_middle_json=False,
+                    f_dump_model_output=False,
+                    f_dump_orig_pdf=False,
+                    f_dump_content_list=False,
+                )
             )
 
-            # 4. Find the generated markdown
-            md_content = _find_markdown(output_dir, pdf_name, req.backend, req.parse_method)
+            md_content = _find_markdown(output_dir, pdf_name, req_data["backend"], req_data["parse_method"])
 
-            # 5. Upload parsed markdown to S3
-            output_key = req.s3_key.rsplit(".", 1)[0] + ".parsed.md"
-            s3.put_object(Bucket=settings.s3_bucket, Key=output_key, Body=md_content.encode("utf-8"))
+            output_key = req_data["s3_key"].rsplit(".", 1)[0] + ".parsed.md"
+            s3_client.put_object(Bucket=s3_config["bucket"], Key=output_key, Body=md_content.encode("utf-8"))
 
-            result = ParseResult(
-                s3_key=req.s3_key,
-                output_s3_key=output_key,
-                status="completed",
-            )
+            return {"s3_key": req_data["s3_key"], "output_s3_key": output_key, "status": "completed", "error": None}
     except Exception as e:
-        result = ParseResult(
-            s3_key=req.s3_key,
-            status="failed",
-            error=str(e),
-        )
+        return {"s3_key": req_data["s3_key"], "output_s3_key": "", "status": "failed", "error": str(e)}
 
-    # 6. Call webhook to resume workflow
+
+async def _do_parse(req: ParseRequest):
+    """Dispatch parse to process pool, then call webhook with result."""
+    loop = asyncio.get_running_loop()
+
+    s3_config = {
+        "endpoint": settings.s3_endpoint,
+        "access_key": settings.s3_access_key,
+        "secret_key": settings.s3_secret_key,
+        "bucket": settings.s3_bucket,
+        "region": settings.s3_region,
+    }
+
+    result_data = await loop.run_in_executor(
+        _parse_pool,
+        _sync_parse,
+        req.model_dump(),
+        s3_config,
+    )
+
+    result = ParseResult(**result_data)
+
     async with httpx.AsyncClient() as client:
         await client.post(
             req.webhook_url,
