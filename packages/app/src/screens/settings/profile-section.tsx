@@ -1,6 +1,6 @@
 "use client";
 
-import { AppCard, Spinner, YStack } from "@repo/ui";
+import { AppCard, Spinner, View, YStack } from "@repo/ui";
 import { useAppForm } from "@repo/ui/form";
 import { useCurrentUser, useUpdateProfile } from "../../hooks/use-settings";
 
@@ -41,13 +41,7 @@ function ProfileForm({
 
 	return (
 		<AppCard size="lg">
-			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					form.handleSubmit();
-				}}
-			>
+			<View>
 				<YStack gap="$3">
 					<form.AppField name="name">
 						{(field) => (
@@ -102,7 +96,7 @@ function ProfileForm({
 						<form.SubmitButton theme="purple" mt="$2">Save Changes</form.SubmitButton>
 					</form.AppForm>
 				</YStack>
-			</form>
+			</View>
 		</AppCard>
 	);
 }

@@ -24,7 +24,12 @@ export function SubmitButton({
 			})}
 		>
 			{({ canSubmit, isSubmitting }) => (
-				<Button type="submit" disabled={!canSubmit} {...buttonProps}>
+				<Button
+					type="submit"
+					disabled={!canSubmit}
+					onPress={() => form.handleSubmit()}
+					{...buttonProps}
+				>
 					{isSubmitting ? (
 						<>
 							<Spinner size="small" />

@@ -97,7 +97,7 @@ export function DashboardScreen() {
 					</H3>
 
 					{sections.length === 0 ? (
-						<Link href="/upload" style={{ textDecoration: "none" }}>
+						<Link href="/upload">
 							<UploadCTA />
 						</Link>
 					) : (

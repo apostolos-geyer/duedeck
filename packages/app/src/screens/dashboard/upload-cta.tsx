@@ -4,9 +4,10 @@ import { Paragraph } from "@repo/ui";
 import { AppCard } from "@repo/ui";
 import { Upload } from "@tamagui/lucide-icons";
 
-export function UploadCTA() {
+export function UploadCTA(props: Record<string, unknown>) {
 	return (
 		<AppCard
+			{...props}
 			variant="outlined"
 			size="md"
 			borderStyle="dashed"

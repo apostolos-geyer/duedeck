@@ -8,9 +8,18 @@
     "./rpc/client": "./src/rpc/client.ts",
     "./rpc/query-provider": "./src/rpc/query-provider.tsx",
     "./rpc/orpc-context": "./src/rpc/orpc-context.tsx",
-    "./components/link": "./src/components/link.tsx",
-    "./hooks/use-app-router": "./src/hooks/use-app-router.tsx",
-    "./hooks/use-pathname": "./src/hooks/use-pathname.tsx",
+    "./components/link": {
+      "react-native": "./src/components/link.native.tsx",
+      "default": "./src/components/link.web.tsx"
+    },
+    "./hooks/use-app-router": {
+      "react-native": "./src/hooks/use-app-router.native.tsx",
+      "default": "./src/hooks/use-app-router.web.tsx"
+    },
+    "./hooks/use-pathname": {
+      "react-native": "./src/hooks/use-pathname.native.tsx",
+      "default": "./src/hooks/use-pathname.web.tsx"
+    },
     "./hooks": "./src/hooks/index.ts",
     "./workflows/*": "./src/workflows/*/index.ts",
     "./workflows/parse-document/extraction-schema": "./src/workflows/parse-document/extraction-schema.ts",

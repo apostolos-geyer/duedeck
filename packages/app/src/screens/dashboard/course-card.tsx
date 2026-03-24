@@ -22,10 +22,12 @@ export function CourseCard({
 	section,
 	nextDeadline,
 	courseTermEnded,
-}: CourseCardProps) {
+	...rest
+}: CourseCardProps & Record<string, unknown>) {
 	return (
 		<Theme name={section.theme as any}>
 			<AppCard
+				{...rest}
 				variant="outlined"
 				size="sm"
 				borderLeftWidth={4}

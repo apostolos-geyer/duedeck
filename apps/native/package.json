@@ -1,0 +1,41 @@
+{
+  "name": "native",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "private": true,
+  "scripts": {
+    "dev": "expo start",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios"
+  },
+  "dependencies": {
+    "@better-auth/expo": "^1.5.6",
+    "@orpc/client": "latest",
+    "@orpc/tanstack-query": "latest",
+    "@repo/app": "workspace:*",
+    "@repo/auth": "workspace:*",
+    "@repo/ui": "*",
+    "@tamagui/config": "^2.0.0-rc.25",
+    "@tamagui/web": "^2.0.0-rc.25",
+    "@tanstack/react-query": "^5.90.0",
+    "better-auth": "^1.0.0",
+    "expo": "~55.0.8",
+    "expo-constants": "~55.0.9",
+    "expo-linking": "~55.0.8",
+    "expo-network": "~55.0.9",
+    "expo-router": "~55.0.7",
+    "expo-secure-store": "~55.0.9",
+    "expo-status-bar": "~55.0.4",
+    "expo-web-browser": "~55.0.10",
+    "react": "19.2.0",
+    "react-native": "0.83.2",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0",
+    "tamagui": "^2.0.0-rc.25"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~5.9.2"
+  }
+}

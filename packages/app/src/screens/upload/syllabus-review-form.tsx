@@ -74,7 +74,7 @@ export function SyllabusReviewForm({
 	);
 
 	return (
-		<form onSubmit={handleSubmit}>
+		<View>
 			<YStack gap="$5">
 				{/* School context — read-only */}
 				<XStack
@@ -426,6 +426,6 @@ export function SyllabusReviewForm({
 					</Button>
 				</XStack>
 			</YStack>
-		</form>
+		</View>
 	);
 }

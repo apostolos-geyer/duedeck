@@ -1,11 +1,18 @@
-import { Link as ExpoLink } from "expo-router";
+import { useRouter } from "expo-router";
+import { Pressable } from "react-native";
 
 interface LinkProps {
 	href: string;
 	children: React.ReactNode;
+	style?: Record<string, unknown>;
+	asChild?: boolean;
 }
 
-export function Link({ href, children }: LinkProps) {
-	// biome-ignore lint: expo-router href typing requires cast
-	return <ExpoLink href={href as any}>{children}</ExpoLink>;
+export function Link({ href, children, style }: LinkProps) {
+	const router = useRouter();
+	return (
+		<Pressable onPress={() => router.push(href as never)} style={style as any}>
+			{children}
+		</Pressable>
+	);
 }
