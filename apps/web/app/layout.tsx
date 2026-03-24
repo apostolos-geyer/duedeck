@@ -16,6 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link crossOrigin="anonymous" href="/fonts/dm-serif-display.css" rel="stylesheet" />
+        <link crossOrigin="anonymous" href="/fonts/ibm-plex-sans.css" rel="stylesheet" />
+      </head>
       <body>
         <Provider>
           <Providers>{children}</Providers>
