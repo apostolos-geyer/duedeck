@@ -13,6 +13,7 @@ import {
 } from "@repo/app/screens/upload";
 import type { SyllabusExtraction } from "@repo/app/workflows/parse-document/extraction-schema";
 import { useConfirmDocument, useCancelDocument } from "@repo/app/hooks";
+import { useActiveRun } from "@repo/app/contexts/active-run-context";
 import { orpc } from "@/lib/rpc-client";
 import { H2, SizableText, YStack, XStack, Button } from "@repo/ui";
 
@@ -27,6 +28,7 @@ export default function ProcessingPage({
 	const router = useRouter();
 	const confirmDoc = useConfirmDocument();
 	const cancelDoc = useCancelDocument();
+	const { clearRun } = useActiveRun();
 
 	const [viewTab, setViewTab] = useState<ViewTab>("pdf");
 
@@ -71,6 +73,15 @@ export default function ProcessingPage({
 		[events],
 	);
 
+	// Workflow-level error (e.g. AI extraction failed)
+	const workflowError = useMemo(() => {
+		for (let i = events.length - 1; i >= 0; i--) {
+			const e = events[i];
+			if (e?.data?.error) return e.data.error as string;
+		}
+		return undefined;
+	}, [events]);
+
 	// Extract data from review event
 	const extraction = reviewEvent?.data?.extraction as
 		| SyllabusExtraction
@@ -84,6 +95,7 @@ export default function ProcessingPage({
 	// Handle completion redirect
 	const handleComplete = useCallback(
 		(data?: Record<string, unknown>) => {
+			clearRun();
 			if (data?.cancelled) {
 				router.push("/upload");
 			} else if (data?.docId) {
@@ -92,14 +104,14 @@ export default function ProcessingPage({
 				router.push("/dashboard");
 			}
 		},
-		[router],
+		[router, clearRun],
 	);
 
 	useEffect(() => {
-		if (doneEvent) {
+		if (doneEvent && !workflowError) {
 			handleComplete(doneEvent.data);
 		}
-	}, [doneEvent, handleComplete]);
+	}, [doneEvent, workflowError, handleComplete]);
 
 	// Confirm handler
 	const handleConfirm = useCallback(
@@ -121,7 +133,7 @@ export default function ProcessingPage({
 		? "Review Extracted Data"
 		: "Processing Syllabus";
 
-	const headerSubtitle = error
+	const headerSubtitle = error || workflowError
 		? "Something went wrong"
 		: showForm
 			? "Review and edit the extracted course info, grade weights, and deadlines"
@@ -143,11 +155,14 @@ export default function ProcessingPage({
 			</YStack>
 
 			{/* Error state */}
-			{error && (
-				<YStack gap="$3">
-					<SizableText color="$red9">{error.message}</SizableText>
+			{(error || workflowError) && (
+				<YStack gap="$3" bg="$red3" rounded="$4" p="$4">
+					<SizableText size="$3" fontWeight="600" color="$red11">
+						{error ? error.message : workflowError}
+					</SizableText>
 					<Button
-						theme="gray"
+						theme="purple"
+						alignSelf="flex-start"
 						onPress={() => router.push("/upload")}
 					>
 						Try Again
@@ -200,7 +215,7 @@ export default function ProcessingPage({
 				<YStack flex={1} minW={0} $lg={{ minW: 420 }}>
 					<YStack gap="$4" pb="$6">
 						{/* Detailed processing steps — shown when no form is active */}
-						{!showForm && !error && !doneEvent && (
+						{!showForm && !error && !workflowError && !doneEvent && (
 							<ProcessingSteps
 								events={events}
 								onComplete={handleComplete}

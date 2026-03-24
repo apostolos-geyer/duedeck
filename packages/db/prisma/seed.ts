@@ -200,9 +200,8 @@ async function main() {
 	}
 
 	// ── Calendar Connections ──
-	await prisma.calendarConnection.create({ data: { userId: apostolos.id, provider: "google", connected: true, email: "ajgeyer@gmail.com" } });
+	await prisma.calendarConnection.create({ data: { userId: apostolos.id, provider: "google", connected: false } });
 	await prisma.calendarConnection.create({ data: { userId: apostolos.id, provider: "microsoft", connected: false } });
-	await prisma.calendarConnection.create({ data: { userId: apostolos.id, provider: "apple", connected: false } });
 
 	// ── Reminder Preferences ──
 	await prisma.reminderPreference.create({ data: { userId: apostolos.id, channel: "push", enabled: true, offsetMinutes: 1440 } });

@@ -139,7 +139,7 @@ export async function triggerHermesParse(
 export async function handleParseCallback(
 	docId: string,
 	request: Request,
-): Promise<{ parsedS3Key: string; status: string }> {
+): Promise<{ parsedS3Key: string | null; status: string; error?: string }> {
 	"use step";
 	const body = await request.json();
 	const newStatus = body.status === "completed" ? "completed" : "failed";
@@ -151,7 +151,11 @@ export async function handleParseCallback(
 			error: body.error,
 		},
 	});
-	return { parsedS3Key: body.output_s3_key ?? "", status: newStatus };
+	return {
+		parsedS3Key: body.output_s3_key ?? null,
+		status: newStatus,
+		error: body.error ?? undefined,
+	};
 }
 
 export async function saveExtraction(
@@ -318,6 +322,14 @@ export async function cancelDocument(docId: string) {
 	await prisma.document.update({
 		where: { id: docId },
 		data: { status: "cancelled" },
+	});
+}
+
+export async function failDocument(docId: string, error: string) {
+	"use step";
+	await prisma.document.update({
+		where: { id: docId },
+		data: { status: "failed", error },
 	});
 }
 

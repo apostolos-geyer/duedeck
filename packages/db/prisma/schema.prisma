@@ -224,12 +224,17 @@ model Message {
 }
 
 model CalendarConnection {
-  id        String  @id @default(uuid())
-  userId    String
-  provider  String
-  connected Boolean @default(false)
-  email     String?
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(uuid())
+  userId               String
+  provider             String
+  connected            Boolean   @default(false)
+  email                String?
+  accessToken          String?
+  refreshToken         String?
+  accessTokenExpiresAt DateTime?
+  providerAccountId    String?
+  scope                String?
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
   @@map("calendar_connection")

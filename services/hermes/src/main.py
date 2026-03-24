@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import os
 import tempfile
 from pathlib import Path
+
+# MinerU expects a USERNAME env var; Windows may not set one in all contexts
+if "USERNAME" not in os.environ and "USER" not in os.environ:
+    os.environ["USERNAME"] = os.getenv("COMPUTERNAME", "duedeck")
 
 import boto3
 import httpx

@@ -12,7 +12,7 @@ export {
 	useCurrentUser,
 	useUpdateProfile,
 	useReminderPreferences,
-	useToggleCalendar,
+	useDisconnectCalendar,
 	useUpdateReminders,
 } from "./use-settings";
 export {
@@ -24,5 +24,6 @@ export {
 	useStartDocument,
 	useConfirmDocument,
 	useCancelDocument,
+	useCancelActiveDocuments,
 } from "./use-upload";
 export { useEnroll, useUnenroll } from "./use-enrollment";

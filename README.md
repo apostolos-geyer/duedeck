@@ -107,6 +107,39 @@ bunx --bun prisma migrate deploy                         # Apply in production
 
 Email verification is currently **disabled**. To enable it, set `requireEmailVerification: true` in the server config and add an email provider.
 
+## Calendar Sync (Google & Microsoft)
+
+Calendar sync uses OAuth 2.0 to connect a user's Google or Microsoft calendar from the Settings page.
+
+### Setup
+
+1. **Google:** Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials. Create an OAuth 2.0 Client ID (Web application). Add the authorized redirect URI:
+
+```
+{BETTER_AUTH_URL}/api/calendar/google/callback
+```
+
+For local dev: `http://localhost:3000/api/calendar/google/callback`
+
+2. **Microsoft:** Go to [Azure Portal](https://portal.azure.com/) → App registrations → New registration. Under Authentication, add the redirect URI:
+
+```
+{BETTER_AUTH_URL}/api/calendar/microsoft/callback
+```
+
+For local dev: `http://localhost:3000/api/calendar/microsoft/callback`
+
+3. Add the credentials to your `.env`:
+
+```bash
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+MICROSOFT_CLIENT_ID=your-microsoft-client-id
+MICROSOFT_CLIENT_SECRET=your-microsoft-client-secret
+```
+
+4. Visit Settings in the app and click **Connect** on Google Calendar or Microsoft Outlook. You'll be redirected through the OAuth consent flow and back.
+
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -114,5 +147,9 @@ Email verification is currently **disabled**. To enable it, set `requireEmailVer
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://duedeck:duedeck@localhost:5433/duedeck` |
 | `BETTER_AUTH_SECRET` | Auth encryption secret (32+ chars) | Generated in `.env` |
 | `BETTER_AUTH_URL` | Base URL for auth callbacks | `http://localhost:3000` |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | — |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | — |
+| `MICROSOFT_CLIENT_ID` | Microsoft OAuth client ID | — |
+| `MICROSOFT_CLIENT_SECRET` | Microsoft OAuth client secret | — |
 
 The root `.env` is symlinked into `apps/web/.env` so Next.js picks it up automatically.

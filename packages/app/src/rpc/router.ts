@@ -11,6 +11,7 @@ import {
 import {
 	syllabusExtractionSchema,
 } from "../workflows/parse-document/extraction-schema";
+import { decryptToken, revokeToken, isValidProvider } from "../lib/calendar";
 
 export type { ProgressEvent };
 
@@ -137,6 +138,14 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 			await resumeHook(input.hookToken, { action: "cancel" as const });
 			return { ok: true };
 		});
+
+	const cancelActiveDocuments = authed.handler(async ({ context }) => {
+		await prisma.document.updateMany({
+			where: { uploadedById: context.userId, status: "processing" },
+			data: { status: "cancelled" },
+		});
+		return { ok: true };
+	});
 
 	// ── users ────────────────────────────────────────────────
 
@@ -424,9 +433,27 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 		});
 	});
 
-	const toggleCalendar = authed
-		.input(type({ provider: "string", connected: "boolean", "email?": "string" }))
+	const disconnectCalendar = authed
+		.input(type({ provider: "string" }))
 		.handler(async ({ context, input }) => {
+			const existing = await prisma.calendarConnection.findUnique({
+				where: {
+					userId_provider: {
+						userId: context.userId,
+						provider: input.provider,
+					},
+				},
+			});
+
+			if (existing?.refreshToken && isValidProvider(input.provider)) {
+				try {
+					const token = decryptToken(existing.refreshToken);
+					await revokeToken(input.provider, token);
+				} catch {
+					// Best-effort revocation
+				}
+			}
+
 			return prisma.calendarConnection.upsert({
 				where: {
 					userId_provider: {
@@ -437,12 +464,16 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 				create: {
 					userId: context.userId,
 					provider: input.provider,
-					connected: input.connected,
-					email: input.email,
+					connected: false,
 				},
 				update: {
-					connected: input.connected,
-					email: input.email,
+					connected: false,
+					email: null,
+					accessToken: null,
+					refreshToken: null,
+					accessTokenExpiresAt: null,
+					providerAccountId: null,
+					scope: null,
 				},
 			});
 		});
@@ -498,6 +529,7 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 			stream: streamDocument,
 			confirm: confirmDocument,
 			cancel: cancelDocument,
+			cancelActive: cancelActiveDocuments,
 		},
 		users: {
 			me,
@@ -538,7 +570,7 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 		},
 		settings: {
 			calendarConnections,
-			toggleCalendar,
+			disconnectCalendar,
 			reminderPreferences,
 			updateReminders,
 			updateProfile,
