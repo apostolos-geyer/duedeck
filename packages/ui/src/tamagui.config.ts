@@ -1,6 +1,6 @@
 import { defaultConfig } from "@tamagui/config/v5";
 import { animations } from "@tamagui/config/v5-css";
-import { createTamagui, createTokens } from "tamagui";
+import { createTamagui, createTokens } from "@tamagui/web";
 
 const tokens = createTokens({
   ...defaultConfig.tokens,

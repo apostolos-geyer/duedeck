@@ -156,7 +156,8 @@ export function CourseDetailScreen({ sectionId }: CourseDetailScreenProps) {
 				{/* Study Group CTA */}
 				<StudyGroupCTA
 					courseCode={course.code}
-					courseId={course.id}
+					sectionId={sectionId}
+					isEnrolled={isEnrolled}
 				/>
 			</YStack>
 		</Theme>

@@ -1,10 +1,12 @@
 "use client";
 
-import type { TamaguiProviderProps } from "tamagui";
-import { TamaguiProvider } from "tamagui";
+import type { ComponentProps } from "react";
+import { TamaguiProvider } from "@tamagui/web";
 import { config } from "./tamagui.config";
 
-type ProviderProps = Partial<Omit<TamaguiProviderProps, "config">> & {
+type ProviderProps = Partial<
+  Omit<ComponentProps<typeof TamaguiProvider>, "config" | "children">
+> & {
   children: React.ReactNode;
 };
 

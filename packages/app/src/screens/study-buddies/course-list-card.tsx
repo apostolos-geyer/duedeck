@@ -9,12 +9,17 @@ interface CourseListCardProps {
 		code: string;
 		name: string;
 		totalEnrollments?: number;
-		_count?: { studyGroups?: number };
+		/** Custom study groups only (not section class chats), by visibility. */
+		customStudyGroupCounts?: { public: number; private: number };
 	};
 	onPress: () => void;
 }
 
 export function CourseListCard({ course, onPress }: CourseListCardProps) {
+	const { public: publicGroups, private: privateGroups } =
+		course.customStudyGroupCounts ?? { public: 0, private: 0 };
+	const hasCustomGroups = publicGroups > 0 || privateGroups > 0;
+
 	return (
 		<XStack
 			bg="$gray2"
@@ -45,11 +50,11 @@ export function CourseListCard({ course, onPress }: CourseListCardProps) {
 						</SizableText>
 					</XStack>
 				)}
-				{course._count?.studyGroups != null && (
+				{hasCustomGroups && (
 					<XStack gap="$1" items="center">
 						<MessageCircle size={14} color="$gray9" />
 						<SizableText size="$2" color="$gray10">
-							{course._count.studyGroups} groups
+							private {privateGroups} | public {publicGroups}
 						</SizableText>
 					</XStack>
 				)}

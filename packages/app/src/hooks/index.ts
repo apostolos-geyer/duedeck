@@ -7,7 +7,13 @@ export {
 	useStudyGroups,
 	useMessages,
 	useSendMessage,
+	useStudyGroupSharedFreeTime,
 } from "./use-study-buddies";
+export {
+	usePeerProfile,
+	useDirectMessages,
+	useSendDirectMessage,
+} from "./use-direct-messages";
 export {
 	useCurrentUser,
 	useUpdateProfile,
