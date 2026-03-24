@@ -188,13 +188,15 @@ export function SyllabusReviewForm({
 							<YStack gap="$2">
 								{field.state.value.map(
 									(_: unknown, index: number) => (
-										<XStack
+										<YStack
 											key={index}
 											gap="$3"
-											items="flex-end"
 											bg="$gray2"
-											rounded="$4"
+											rounded={0}
 											p="$3"
+											borderWidth={2}
+											borderColor="$gray5"
+											$md={{ flexDirection: "row", items: "flex-end" }}
 										>
 											<YStack flex={3}>
 												<form.AppField
@@ -254,7 +256,7 @@ export function SyllabusReviewForm({
 											>
 												<Trash2 size={16} color="$red9" />
 											</Button>
-										</XStack>
+										</YStack>
 									),
 								)}
 								<Button
@@ -290,13 +292,15 @@ export function SyllabusReviewForm({
 							<YStack gap="$2">
 								{field.state.value.map(
 									(_: unknown, index: number) => (
-										<XStack
+										<YStack
 											key={index}
 											gap="$3"
-											items="flex-end"
 											bg="$gray2"
-											rounded="$4"
+											rounded={0}
 											p="$3"
+											borderWidth={2}
+											borderColor="$gray5"
+											$md={{ flexDirection: "row", items: "flex-end" }}
 										>
 											<YStack flex={3}>
 												<form.AppField
@@ -374,7 +378,7 @@ export function SyllabusReviewForm({
 											>
 												<Trash2 size={16} color="$red9" />
 											</Button>
-										</XStack>
+										</YStack>
 									),
 								)}
 								<Button

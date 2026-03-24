@@ -1,6 +1,6 @@
 "use client";
 
-import { Paragraph, SizableText, XStack } from "@repo/ui";
+import { H2, Paragraph, XStack, YStack } from "@repo/ui";
 import { AppCard } from "@repo/ui";
 
 interface StatsRowProps {
@@ -9,35 +9,49 @@ interface StatsRowProps {
 	totalCourses: number;
 }
 
+function StatCard({
+	value,
+	label,
+	color,
+}: {
+	value: number;
+	label: string;
+	color: string;
+}) {
+	return (
+		<AppCard
+			variant="elevated"
+			size="md"
+			flex={1}
+			minW={0}
+			borderTopWidth={4}
+			borderTopColor={color as any}
+		>
+			<YStack gap="$1">
+				<H2
+					fontFamily="$heading"
+					color={color as any}
+				>
+					{value}
+				</H2>
+				<Paragraph size="$2" color="$gray10" fontWeight="500">
+					{label}
+				</Paragraph>
+			</YStack>
+		</AppCard>
+	);
+}
+
 export function StatsRow({
 	dueThisWeek,
 	examsThisMonth,
 	totalCourses,
 }: StatsRowProps) {
 	return (
-		<AppCard variant="flat" size="sm">
-			<XStack gap="$3" items="center" flexWrap="wrap">
-				<Paragraph size="$3" color="$color12">
-					<SizableText fontWeight="800" color="$red9" size="$5">
-						{dueThisWeek}
-					</SizableText>
-					{" "}due this week
-				</Paragraph>
-				<SizableText size="$3" color="$gray7">·</SizableText>
-				<Paragraph size="$3" color="$color12">
-					<SizableText fontWeight="800" color="$orange9" size="$5">
-						{examsThisMonth}
-					</SizableText>
-					{" "}exams this month
-				</Paragraph>
-				<SizableText size="$3" color="$gray7">·</SizableText>
-				<Paragraph size="$3" color="$color12">
-					<SizableText fontWeight="800" color="$purple9" size="$5">
-						{totalCourses}
-					</SizableText>
-					{" "}courses
-				</Paragraph>
-			</XStack>
-		</AppCard>
+		<YStack gap="$3" $md={{ flexDirection: "row", gap: "$4" }}>
+			<StatCard value={dueThisWeek} label="Due This Week" color="$red9" />
+			<StatCard value={examsThisMonth} label="Exams This Month" color="$orange9" />
+			<StatCard value={totalCourses} label="Courses" color="$purple9" />
+		</YStack>
 	);
 }
