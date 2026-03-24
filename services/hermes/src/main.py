@@ -38,7 +38,9 @@ settings = Settings()
 
 # Configure GPU memory before any torch import
 if settings.device == "mps":
-    # Apple Silicon: allow PyTorch to use up to the full unified memory
+    # Apple Silicon: MinerU's get_vram() has no MPS path and defaults to 1GB.
+    # MINERU_VIRTUAL_VRAM_SIZE tells it how much VRAM to assume (in GB).
+    os.environ.setdefault("MINERU_VIRTUAL_VRAM_SIZE", str(settings.gpu_memory_gb))
     os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.0")  # no limit
 elif settings.device == "cuda":
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", f"max_split_size_mb:{settings.gpu_memory_gb * 1024}")
