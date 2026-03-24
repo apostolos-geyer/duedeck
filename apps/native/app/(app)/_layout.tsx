@@ -28,7 +28,7 @@ export default function AppLayout() {
 				<NativeTabs.Trigger.Icon sf="calendar" md="event" />
 				<NativeTabs.Trigger.Label>Calendar</NativeTabs.Trigger.Label>
 			</NativeTabs.Trigger>
-			<NativeTabs.Trigger name="(study-buddies)">
+			<NativeTabs.Trigger name="(groups)">
 				<NativeTabs.Trigger.Icon sf="person.2.fill" md="group" />
 				<NativeTabs.Trigger.Label>Groups</NativeTabs.Trigger.Label>
 			</NativeTabs.Trigger>
