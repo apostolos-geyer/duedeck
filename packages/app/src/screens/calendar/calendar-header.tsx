@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, SizableText, XStack } from "@repo/ui";
+import { Button, H3, XStack } from "@repo/ui";
 import { ChevronLeft, ChevronRight } from "@tamagui/lucide-icons";
 
 interface CalendarHeaderProps {
@@ -39,9 +39,9 @@ export function CalendarHeader({
 				icon={<ChevronLeft size={20} />}
 				onPress={onPrev}
 			/>
-			<SizableText size="$6" fontWeight="700" color="$color12">
+			<H3 fontFamily="$heading">
 				{label}
-			</SizableText>
+			</H3>
 			<Button
 				size="$3"
 				circular

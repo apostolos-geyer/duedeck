@@ -53,7 +53,7 @@ const SectionContent = styled(YStack, {
   gap: "$2",
 });
 
-export const Section = withStaticProperties(SectionFrame, {
+export const ContentSection = withStaticProperties(SectionFrame, {
   Title: SectionTitle,
   Description: SectionDescription,
   Content: SectionContent,

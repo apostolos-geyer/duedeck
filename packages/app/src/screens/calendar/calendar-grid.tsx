@@ -49,6 +49,21 @@ function getTypeLabel(type: string): string {
 	return labels[type] ?? type;
 }
 
+const CHIP_COLORS: Record<string, string> = {
+	red: "$red5",
+	orange: "$orange5",
+	yellow: "$yellow5",
+	green: "$green5",
+	blue: "$blue5",
+	purple: "$purple5",
+	pink: "$pink5",
+	gray: "$gray5",
+};
+
+function chipBg(theme: string) {
+	return (CHIP_COLORS[theme] ?? "$gray5") as any;
+}
+
 export function CalendarGrid({ currentDate, deadlines }: CalendarGridProps) {
 	const today = new Date();
 	const year = currentDate.getFullYear();
@@ -163,7 +178,7 @@ export function CalendarGrid({ currentDate, deadlines }: CalendarGridProps) {
 				borderTopWidth={1}
 				borderLeftWidth={1}
 				borderColor={gridBorderColor}
-				rounded="$3"
+				rounded={0}
 				overflow="visible"
 			>
 			{weeks.map((week, weekIdx) => (
@@ -176,6 +191,9 @@ export function CalendarGrid({ currentDate, deadlines }: CalendarGridProps) {
 							displayDay === day &&
 							hasDeadlines;
 
+						const visibleChips = items.slice(0, 2);
+						const overflowCount = items.length - 2;
+
 						return (
 							<YStack
 								key={dayIdx}
@@ -185,9 +203,9 @@ export function CalendarGrid({ currentDate, deadlines }: CalendarGridProps) {
 								p="$1"
 								position="relative"
 								overflow="visible"
-								borderRightWidth={1}
-								borderBottomWidth={1}
-								borderColor={gridBorderColor}
+								borderRightWidth={day !== null && isToday(day) ? 2 : 1}
+								borderBottomWidth={day !== null && isToday(day) ? 2 : 1}
+								borderColor={day !== null && isToday(day) ? "$purple9" : gridBorderColor as any}
 								bg={
 									day !== null && isToday(day) ? "$purple2" : "transparent"
 								}
@@ -218,26 +236,37 @@ export function CalendarGrid({ currentDate, deadlines }: CalendarGridProps) {
 										>
 											{day}
 										</SizableText>
-										<XStack gap="$1" flexWrap="wrap" mt="$1">
-											{items.map((dl) => (
-												<Theme key={dl.id} name={dl.theme as never}>
-													<View
-														width={8}
-														height={8}
-														rounded="$10"
-														bg="$color9"
-														opacity={dl.completed ? 0.45 : 1}
-														hoverStyle={
-															hasDeadlines
-																? { scale: 1.15, opacity: 1 }
-																: undefined
-														}
-														animation="quick"
-														aria-label={`${dl.title}, ${dl.courseLabel}${dl.completed ? ", completed" : ""}`}
-													/>
-												</Theme>
+
+										<YStack gap="$1" mt="$1">
+											{visibleChips.map((dl) => (
+												<View
+													key={dl.id}
+													bg={chipBg(dl.theme)}
+													rounded={0}
+													px="$1"
+													py={2}
+													opacity={dl.completed ? 0.5 : 1}
+												>
+													<SizableText
+														size="$1"
+														fontWeight="600"
+														color="$color12"
+														numberOfLines={1}
+													>
+														{dl.courseLabel}
+													</SizableText>
+												</View>
 											))}
-										</XStack>
+											{overflowCount > 0 && (
+												<SizableText
+													size="$1"
+													color="$gray9"
+													fontWeight="500"
+												>
+													+{overflowCount} more
+												</SizableText>
+											)}
+										</YStack>
 									</YStack>
 								)}
 
@@ -249,11 +278,11 @@ export function CalendarGrid({ currentDate, deadlines }: CalendarGridProps) {
 											r={0}
 											t="100%"
 											mt="$1"
-											zIndex={200}
+											z={200}
 											bg="$purple2"
 											borderWidth={1}
 											borderColor="$purple7"
-											rounded="$4"
+											rounded={0}
 											p="$2"
 											gap="$2"
 											shadowColor="$purple4"
@@ -281,7 +310,7 @@ export function CalendarGrid({ currentDate, deadlines }: CalendarGridProps) {
 													<YStack
 														key={dl.id}
 														bg="$background"
-														rounded="$3"
+														rounded={0}
 														p="$2"
 														pl="$2"
 														borderLeftWidth={3}
@@ -313,7 +342,7 @@ export function CalendarGrid({ currentDate, deadlines }: CalendarGridProps) {
 															<Theme name={typeTheme}>
 																<View
 																	bg="$color4"
-																	rounded="$10"
+																	rounded={0}
 																	px="$2"
 																	py="$1"
 																>

@@ -1,7 +1,17 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Button, H2, SizableText, Spinner, View, XStack, YStack } from "@repo/ui";
+import {
+	AppCard,
+	Button,
+	H4,
+	Paragraph,
+	SizableText,
+	Spinner,
+	View,
+	XStack,
+	YStack,
+} from "@repo/ui";
 import { AlertCircle } from "@tamagui/lucide-icons";
 import { usePresign, useStartDocument, useCancelActiveDocuments } from "../../hooks/use-upload";
 import { useAppRouter } from "../../hooks/use-app-router";
@@ -69,106 +79,118 @@ export function UploadScreen() {
 
 	return (
 		<YStack gap="$5" maxW="$container.xxl" width="100%">
-			<YStack gap="$1">
-				<H2 fontWeight="800" color="$color12">
-					Upload Syllabus
-				</H2>
-				<SizableText size="$3" color="$gray9">
-					Upload a course syllabus PDF to automatically extract deadlines
-				</SizableText>
-			</YStack>
-
 			{showConflict && (
-				<YStack bg="$orange3" rounded="$4" p="$4" gap="$3">
-					<XStack gap="$2" items="center">
-						<AlertCircle size={18} color="$orange11" />
-						<SizableText size="$3" fontWeight="600" color="$orange11">
-							A document is currently being processed
-						</SizableText>
-					</XStack>
-					<SizableText size="$2" color="$orange10">
-						Starting a new upload will cancel the current processing. Continue?
-					</SizableText>
-					<XStack gap="$3">
-						<Button
-							theme="orange"
-							size="$3"
-							onPress={handleCancelAndUpload}
-							disabled={cancelActive.isPending}
-						>
-							{cancelActive.isPending ? (
-								<Spinner size="small" />
-							) : (
-								"Continue with New Upload"
-							)}
-						</Button>
-						<Button
-							variant="outlined"
-							size="$3"
-							onPress={() => setShowConflict(false)}
-						>
-							Go Back
-						</Button>
-					</XStack>
+				<AppCard variant="accent" size="md">
+					<YStack gap="$3">
+						<XStack gap="$2" items="center">
+							<AlertCircle size={18} color="$orange11" />
+							<SizableText size="$3" fontWeight="600" color="$orange11">
+								A document is currently being processed
+							</SizableText>
+						</XStack>
+						<Paragraph size="$2" color="$orange10">
+							Starting a new upload will cancel the current processing. Continue?
+						</Paragraph>
+						<XStack gap="$3">
+							<Button
+								theme="orange"
+								size="$3"
+								onPress={handleCancelAndUpload}
+								disabled={cancelActive.isPending}
+							>
+								{cancelActive.isPending ? (
+									<Spinner size="small" />
+								) : (
+									"Continue with New Upload"
+								)}
+							</Button>
+							<Button
+								variant="outlined"
+								size="$3"
+								onPress={() => setShowConflict(false)}
+							>
+								Go Back
+							</Button>
+						</XStack>
+					</YStack>
+				</AppCard>
+			)}
+
+			<XStack gap="$5" flexDirection="column" $md={{ flexDirection: "row" }}>
+				{/* Left column: Drop zone */}
+				<YStack flex={3}>
+					<AppCard size="lg">
+						<DropZone onFileSelected={handleFileSelected} />
+					</AppCard>
 				</YStack>
-			)}
 
-			<DropZone onFileSelected={handleFileSelected} />
+				{/* Right column: Instructions + options */}
+				<YStack flex={2} gap="$4">
+					<AppCard size="md">
+						<YStack gap="$3">
+							<H4 fontFamily="$heading" fontWeight="800" color="$color12">
+								Instructions
+							</H4>
+							<Paragraph size="$3" color="$gray10">
+								Upload a course syllabus PDF to automatically extract deadlines,
+								assignments, and exam dates.
+							</Paragraph>
+							<Paragraph size="$2" color="$gray10">
+								Supported format: PDF files only.
+							</Paragraph>
+						</YStack>
+					</AppCard>
 
-			<YStack
-				gap="$2"
-				bg="$purple2"
-				borderWidth={1}
-				borderColor="$purple6"
-				rounded="$4"
-				p="$3"
-			>
-				<SizableText size="$3" fontWeight="700" color="$purple11">
-					Full reprocess
-				</SizableText>
-				<SizableText size="$2" color="$purple10">
-					Run PDF parsing and AI extraction from scratch, even if this file was
-					already uploaded. You will review and confirm again. Unchecked, matching
-					files use faster duplicate handling when possible.
-				</SizableText>
-				<XStack gap="$2" items="center" cursor="pointer" onPress={() => setForceFullReprocess((v) => !v)}>
-					<View
-						width={20}
-						height={20}
-						rounded="$1"
-						borderWidth={2}
-						borderColor={forceFullReprocess ? "$purple9" : "$gray8"}
-						bg={forceFullReprocess ? "$purple9" : "transparent"}
-						items="center"
-						justify="center"
-					/>
-					<SizableText size="$3" color="$color12" flex={1}>
-						Always run full parse and extraction (ignore duplicates)
-					</SizableText>
-				</XStack>
-			</YStack>
+					<AppCard size="md">
+						<YStack gap="$3">
+							<H4 fontFamily="$heading" fontWeight="800" color="$color12">
+								Full reprocess
+							</H4>
+							<Paragraph size="$2" color="$gray10">
+								Run PDF parsing and AI extraction from scratch, even if this file was
+								already uploaded. Unchecked, matching files use faster duplicate handling.
+							</Paragraph>
+							<XStack gap="$2" items="center" cursor="pointer" onPress={() => setForceFullReprocess((v) => !v)}>
+								<View
+									width={20}
+									height={20}
+									rounded={0}
+									borderWidth={2}
+									borderColor={forceFullReprocess ? "$purple9" : "$gray8"}
+									bg={forceFullReprocess ? "$purple9" : "transparent"}
+									items="center"
+									justify="center"
+								/>
+								<SizableText size="$3" color="$color12" flex={1}>
+									Always run full parse (ignore duplicates)
+								</SizableText>
+							</XStack>
+						</YStack>
+					</AppCard>
 
-			{uploadError && (
-				<SizableText size="$3" color="$red9">
-					{uploadError.message}
-				</SizableText>
-			)}
+					{uploadError && (
+						<SizableText size="$3" color="$red9">
+							{uploadError.message}
+						</SizableText>
+					)}
 
-			<Button
-				theme="purple"
-				disabled={!file || uploading}
-				opacity={file && !uploading ? 1 : 0.5}
-				onPress={handleUpload}
-			>
-				{uploading ? (
-					<>
-						<Spinner size="small" color="white" />
-						Uploading...
-					</>
-				) : (
-					"Upload & Process"
-				)}
-			</Button>
+					<Button
+						theme="purple"
+						disabled={!file || uploading}
+						opacity={file && !uploading ? 1 : 0.5}
+						onPress={handleUpload}
+					>
+						{uploading ? (
+							<>
+								<Spinner size="small" />
+								Uploading...
+							</>
+						) : (
+							"Upload & Process"
+						)}
+					</Button>
+				</YStack>
+			</XStack>
 		</YStack>
 	);
 }

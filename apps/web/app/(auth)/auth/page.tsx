@@ -1,7 +1,17 @@
 "use client";
 
 import { signIn, signUp } from "@repo/auth/client";
-import { Button, H2, XStack, YStack } from "@repo/ui";
+import {
+	Button,
+	Card,
+	H2,
+	Input,
+	Label,
+	SizableText,
+	Tabs,
+	XStack,
+	YStack,
+} from "@repo/ui";
 import { useAppForm } from "@repo/ui/form";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -245,29 +255,55 @@ export default function AuthPage() {
 	const [tab, setTab] = useState<"signin" | "signup">("signin");
 
 	return (
-		<YStack gap="$4" width="100%" maxW="$container.sm">
-			<YStack items="center">
-				<H2>{tab === "signin" ? "Sign In" : "Sign Up"}</H2>
-			</YStack>
+		<Card
+			width="100%"
+			maxW={480}
+			borderWidth={2}
+			borderColor="$gray6"
+			rounded={0}
+			p="$5"
+		>
+			<Tabs
+				value={tab}
+				onValueChange={(val) => setTab(val as "signin" | "signup")}
+				orientation="horizontal"
+				flexDirection="column"
+			>
+				<Tabs.List>
+					<Tabs.Tab
+						flex={1}
+						value="signin"
+						rounded={0}
+						{...(tab === "signin"
+							? {
+									bg: "$purple3",
+									borderBottomWidth: 2,
+									borderBottomColor: "$purple9",
+								}
+							: { bg: "transparent" })}
+					>
+						<SizableText>Sign In</SizableText>
+					</Tabs.Tab>
+					<Tabs.Tab
+						flex={1}
+						value="signup"
+						rounded={0}
+						{...(tab === "signup"
+							? {
+									bg: "$purple3",
+									borderBottomWidth: 2,
+									borderBottomColor: "$purple9",
+								}
+							: { bg: "transparent" })}
+					>
+						<SizableText>Sign Up</SizableText>
+					</Tabs.Tab>
+				</Tabs.List>
 
-			<XStack gap="$2">
-				<Button
-					flex={1}
-					onPress={() => setTab("signin")}
-					variant={tab === "signin" ? undefined : "outlined"}
-				>
-					Sign In
-				</Button>
-				<Button
-					flex={1}
-					onPress={() => setTab("signup")}
-					variant={tab === "signup" ? undefined : "outlined"}
-				>
-					Sign Up
-				</Button>
-			</XStack>
-
-			{tab === "signin" ? <SignInForm /> : <SignUpForm />}
-		</YStack>
+				<YStack mt="$4">
+					{tab === "signin" ? <SignInForm /> : <SignUpForm />}
+				</YStack>
+			</Tabs>
+		</Card>
 	);
 }

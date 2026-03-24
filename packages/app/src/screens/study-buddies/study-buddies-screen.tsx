@@ -3,12 +3,19 @@
 import {
   Button,
   H3,
-  SizableText,
+  H4,
+  ListItem,
+  Paragraph,
+  Separator,
   Spinner,
+  SizableText,
+  Theme,
   XStack,
   YStack,
+  useMedia,
 } from "@repo/ui";
-import { ChevronRight } from "@tamagui/lucide-icons";
+import { EmptyState } from "@repo/ui";
+import { ChevronRight, ArrowLeft, MessageCircle, Users } from "@tamagui/lucide-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCurrentUser } from "../../hooks/use-settings";
@@ -51,7 +58,7 @@ type FocusedStudyGroup = {
   id: string;
   name: string;
   courseId: string;
-  /** `null` = custom study group; set = this row is the section’s class chat. */
+  /** `null` = custom study group; set = this row is the section's class chat. */
   sectionId: string | null;
   isPublic: boolean;
   maxMembers: number;
@@ -151,10 +158,7 @@ function SchoolsList({ onSelect }: { onSelect: (school: SchoolInfo) => void }) {
   }
 
   return (
-    <YStack
-      gap="$3"
-      $sm={{ flexDirection: "row", gap: "$4", flexWrap: "wrap" }}
-    >
+    <YStack gap="$2">
       {(schools ?? []).map((school) => (
         <SchoolCard
           key={school.id}
@@ -186,10 +190,10 @@ function CoursesList({
   }
 
   return (
-    <YStack gap="$3">
-      <SizableText size="$4" color="$gray10">
+    <YStack gap="$2">
+      <Paragraph size="$2" color="$gray10">
         Courses at {schoolName}
-      </SizableText>
+      </Paragraph>
       {(courses ?? []).map((course) => (
         <CourseListCard
           key={course.id}
@@ -233,42 +237,40 @@ function GroupsList({
   const viewerId = browseViewer?.id;
 
   return (
-    <YStack gap="$4" flex={1} $md={{ flexDirection: "row", gap: "$5" }}>
-      <YStack flex={1} minW={0} $md={{ minW: 280 }} gap="$3">
-        <SizableText size="$3" color="$gray10">
-          Study groups for {courseCode}
-        </SizableText>
-        {(groups ?? []).map((group) => {
-          const isMember = Boolean(
-            viewerId && group.members.some((m) => m.userId === viewerId),
-          );
-          return (
-            <GroupCard
-              key={group.id}
-              group={group}
-              selected={group.id === selectedGroupId}
-              isMember={isMember}
-              joinPending={joiningGroupId === group.id}
-              onOpen={() => onSelectGroup(group.id)}
-              onJoin={() => {
-                setJoiningGroupId(group.id);
-                joinStudyGroup.mutate(
-                  { groupId: group.id },
-                  {
-                    onSettled: () => {
-                      setJoiningGroupId(null);
-                      void queryClient.invalidateQueries();
-                    },
-                    onSuccess: () => {
-                      onSelectGroup(group.id);
-                    },
+    <YStack gap="$3" flex={1}>
+      <Paragraph size="$2" color="$gray10">
+        Study groups for {courseCode}
+      </Paragraph>
+      {(groups ?? []).map((group) => {
+        const isMember = Boolean(
+          viewerId && group.members.some((m) => m.userId === viewerId),
+        );
+        return (
+          <GroupCard
+            key={group.id}
+            group={group}
+            selected={group.id === selectedGroupId}
+            isMember={isMember}
+            joinPending={joiningGroupId === group.id}
+            onOpen={() => onSelectGroup(group.id)}
+            onJoin={() => {
+              setJoiningGroupId(group.id);
+              joinStudyGroup.mutate(
+                { groupId: group.id },
+                {
+                  onSettled: () => {
+                    setJoiningGroupId(null);
+                    void queryClient.invalidateQueries();
                   },
-                );
-              }}
-            />
-          );
-        })}
-      </YStack>
+                  onSuccess: () => {
+                    onSelectGroup(group.id);
+                  },
+                },
+              );
+            }}
+          />
+        );
+      })}
 
       {selectedGroupId && selectedGroup && (
         <YStack flex={2} gap="$0">
@@ -290,6 +292,462 @@ function GroupsList({
   );
 }
 
+/* ─────────────────────────────────────────────────────────── */
+/*  Left sidebar panel content (shared between mobile + desk) */
+/* ─────────────────────────────────────────────────────────── */
+
+function LeftPanelContent({
+  myClasses,
+  myClassesLoading,
+  myCustomRows,
+  myCustomLoading,
+  viewer,
+  focusedGroup,
+  ensureClassChatPending,
+  onOpenClassChat,
+  onFocusGroup,
+  onCreateCustomGroup,
+  leaveStudyGroup,
+  deleteStudyGroup,
+  confirmingDeleteListGroupId,
+  setConfirmingDeleteListGroupId,
+  queryClient,
+  setFocusedGroup,
+  // Browse
+  drillState,
+  onSelectSchool,
+  onSelectCourse,
+  onNavigate,
+  onSelectBrowseGroup,
+  onRemovedFromSelectedBrowseGroup,
+}: {
+  myClasses: any;
+  myClassesLoading: boolean;
+  myCustomRows: any;
+  myCustomLoading: boolean;
+  viewer: any;
+  focusedGroup: FocusedStudyGroup | null;
+  ensureClassChatPending: boolean;
+  onOpenClassChat: (sectionId: string) => void;
+  onFocusGroup: (g: FocusedStudyGroup) => void;
+  onCreateCustomGroup: () => void;
+  leaveStudyGroup: any;
+  deleteStudyGroup: any;
+  confirmingDeleteListGroupId: string | null;
+  setConfirmingDeleteListGroupId: (id: string | null) => void;
+  queryClient: any;
+  setFocusedGroup: (next: FocusedStudyGroup | null | ((prev: FocusedStudyGroup | null) => FocusedStudyGroup | null)) => void;
+  drillState: DrillState;
+  onSelectSchool: (school: SchoolInfo) => void;
+  onSelectCourse: (course: CourseInfo) => void;
+  onNavigate: (level: Level) => void;
+  onSelectBrowseGroup: (groupId: string) => void;
+  onRemovedFromSelectedBrowseGroup: () => void;
+}) {
+  return (
+    <YStack gap="$4" p="$3">
+      {/* New study group button */}
+      <Button
+        size="$3"
+        theme="purple"
+        onPress={onCreateCustomGroup}
+      >
+        New study group
+      </Button>
+
+      {/* ── Class Chats ── */}
+      <YStack gap="$2">
+        <H4 fontFamily="$heading" color="$color12">
+          Class Chats
+        </H4>
+        {myClassesLoading ? (
+          <YStack items="center" py="$4">
+            <Spinner size="small" />
+          </YStack>
+        ) : (myClasses ?? []).length === 0 ? (
+          <Paragraph size="$2" color="$gray9">
+            Enroll in a course to see its class chat here.
+          </Paragraph>
+        ) : (
+          <YStack>
+            {(myClasses ?? []).map((row: any) => (
+              <ListItem
+                key={row.sectionId}
+                title={`${row.courseCode} · Sec ${row.sectionCode}`}
+                subTitle={`${row.schoolShortName} · ${row.term}${row.classChat ? ` · ${row.classChat._count?.members ?? row.classChat.members.length} in chat` : ""}`}
+                icon={MessageCircle}
+                iconAfter={ChevronRight}
+                rounded={0}
+                borderWidth={0}
+                borderBottomWidth={2}
+                borderColor="$gray5"
+                hoverStyle={{ bg: "$gray3" }}
+                pressStyle={{ bg: "$gray4" }}
+                cursor="pointer"
+                disabled={ensureClassChatPending}
+                bg={focusedGroup?.sectionId === row.sectionId ? "$purple2" : undefined}
+                onPress={() => onOpenClassChat(row.sectionId)}
+              />
+            ))}
+          </YStack>
+        )}
+      </YStack>
+
+      <Separator borderColor="$gray6" />
+
+      {/* ── Study Groups ── */}
+      <YStack gap="$2">
+        <H4 fontFamily="$heading" color="$color12">
+          Study Groups
+        </H4>
+        <Paragraph size="$2" color="$gray10">
+          Smaller groups you create or join.
+        </Paragraph>
+        {myCustomLoading ? (
+          <YStack items="center" py="$4">
+            <Spinner size="small" />
+          </YStack>
+        ) : (myCustomRows ?? []).length === 0 ? (
+          <Paragraph size="$2" color="$gray9">
+            You're not in any study groups yet.
+          </Paragraph>
+        ) : (
+          <YStack>
+            {(myCustomRows ?? []).map(({ group: g }: { group: any }) => {
+              const isOwner =
+                Boolean(viewer?.id) &&
+                Boolean(g.createdById) &&
+                g.createdById === viewer?.id;
+              const leavePending =
+                leaveStudyGroup.isPending &&
+                leaveStudyGroup.variables?.groupId === g.id;
+              const deletePending =
+                deleteStudyGroup.isPending &&
+                deleteStudyGroup.variables?.groupId === g.id;
+
+              return (
+                <YStack key={g.id}>
+                  <ListItem
+                    title={g.name}
+                    subTitle={`${g.course.code} · ${g.course.school.shortName} · ${g._count?.members ?? g.members.length} members`}
+                    icon={Users}
+                    rounded={0}
+                    borderWidth={0}
+                    borderBottomWidth={2}
+                    borderColor="$gray5"
+                    hoverStyle={{ bg: "$gray3" }}
+                    pressStyle={{ bg: "$gray4" }}
+                    cursor="pointer"
+                    bg={focusedGroup?.id === g.id ? "$purple2" : undefined}
+                    onPress={() => onFocusGroup(toFocusedGroup(g))}
+                    iconAfter={
+                      <XStack gap="$2" items="center">
+                        {isOwner ? (
+                          <Theme name="red">
+                            <Button
+                              size="$2"
+                              variant="outlined"
+                              disabled={deletePending}
+                              onPress={(e: any) => {
+                                e.stopPropagation?.();
+                                setConfirmingDeleteListGroupId(
+                                  confirmingDeleteListGroupId === g.id ? null : g.id,
+                                );
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </Theme>
+                        ) : (
+                          <Button
+                            size="$2"
+                            variant="outlined"
+                            disabled={leavePending}
+                            onPress={(e: any) => {
+                              e.stopPropagation?.();
+                              leaveStudyGroup.mutate(
+                                { groupId: g.id },
+                                {
+                                  onSuccess: () => {
+                                    if (focusedGroup?.id === g.id) {
+                                      setFocusedGroup(null);
+                                    }
+                                    void queryClient.invalidateQueries();
+                                  },
+                                },
+                              );
+                            }}
+                          >
+                            {leavePending ? "Leaving..." : "Leave"}
+                          </Button>
+                        )}
+                      </XStack>
+                    }
+                  />
+                  {confirmingDeleteListGroupId === g.id ? (
+                    <YStack
+                      gap="$2"
+                      p="$3"
+                      bg="$red2"
+                      rounded={0}
+                      borderWidth={2}
+                      borderColor="$red7"
+                    >
+                      <Paragraph size="$2" color="$red11" fontWeight="600">
+                        Delete &ldquo;{g.name}&rdquo; permanently? All messages and
+                        members are removed. This cannot be undone.
+                      </Paragraph>
+                      <XStack gap="$2" flexWrap="wrap">
+                        <Button
+                          size="$3"
+                          variant="outlined"
+                          disabled={deletePending}
+                          onPress={() => setConfirmingDeleteListGroupId(null)}
+                        >
+                          Cancel
+                        </Button>
+                        <Theme name="red">
+                          <Button
+                            size="$3"
+                            bg="$red9"
+                            disabled={deletePending}
+                            onPress={() => {
+                              deleteStudyGroup.mutate(
+                                { groupId: g.id },
+                                {
+                                  onSuccess: () => {
+                                    setConfirmingDeleteListGroupId(null);
+                                    if (focusedGroup?.id === g.id) {
+                                      setFocusedGroup(null);
+                                    }
+                                    void queryClient.invalidateQueries();
+                                  },
+                                },
+                              );
+                            }}
+                          >
+                            {deletePending ? "Deleting..." : "Yes, delete group"}
+                          </Button>
+                        </Theme>
+                      </XStack>
+                    </YStack>
+                  ) : null}
+                </YStack>
+              );
+            })}
+          </YStack>
+        )}
+      </YStack>
+
+      <Separator borderColor="$gray6" />
+
+      {/* ── Browse ── */}
+      <YStack gap="$2">
+        <H4 fontFamily="$heading" color="$color12">
+          Browse
+        </H4>
+
+        {drillState.level !== "schools" && (
+          <Breadcrumb state={drillState} onNavigate={onNavigate} />
+        )}
+
+        {drillState.level === "schools" && (
+          <SchoolsList onSelect={onSelectSchool} />
+        )}
+
+        {drillState.level === "courses" && drillState.selectedSchool && (
+          <CoursesList
+            schoolId={drillState.selectedSchool.id}
+            schoolName={drillState.selectedSchool.name}
+            onSelect={onSelectCourse}
+          />
+        )}
+
+        {drillState.level === "groups" && drillState.selectedCourse && (
+          <GroupsList
+            courseId={drillState.selectedCourse.id}
+            courseCode={drillState.selectedCourse.code}
+            selectedGroupId={drillState.selectedGroupId}
+            onSelectGroup={onSelectBrowseGroup}
+            onRemovedFromSelectedGroup={onRemovedFromSelectedBrowseGroup}
+          />
+        )}
+      </YStack>
+    </YStack>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+/*  Right panel: focused group view                       */
+/* ─────────────────────────────────────────────────────── */
+
+function RightPanelContent({
+  focusedGroup,
+  viewer,
+  isDesktop,
+  setFocusedGroup,
+  setInviteFromClassOpen,
+  setGroupSettingsOpen,
+  removeMember,
+  queryClient,
+  myClasses,
+  inviteFromClassOpen,
+  setCreateCustomGroupOpen,
+  groupSettingsOpen,
+}: {
+  focusedGroup: FocusedStudyGroup;
+  viewer: any;
+  isDesktop: boolean;
+  setFocusedGroup: (next: FocusedStudyGroup | null | ((prev: FocusedStudyGroup | null) => FocusedStudyGroup | null)) => void;
+  setInviteFromClassOpen: (v: boolean) => void;
+  setGroupSettingsOpen: (v: boolean) => void;
+  removeMember: any;
+  queryClient: any;
+  myClasses: any;
+  inviteFromClassOpen: boolean;
+  setCreateCustomGroupOpen: (v: boolean) => void;
+  groupSettingsOpen: boolean;
+}) {
+  const isCustomStudyGroup = focusedGroup.sectionId === null;
+  const canManageCustomStudyGroup =
+    isCustomStudyGroup &&
+    viewer &&
+    (focusedGroup.createdById === null ||
+      focusedGroup.createdById === viewer.id);
+
+  return (
+    <YStack flex={1} height="100%">
+      {/* Header */}
+      <YStack gap="$2" p="$3" borderBottomWidth={2} borderColor="$gray5">
+        <XStack items="center" gap="$3" flexWrap="wrap">
+          {!isDesktop && (
+            <Button
+              size="$3"
+              variant="outlined"
+              icon={ArrowLeft}
+              onPress={() => setFocusedGroup(null)}
+            >
+              Back
+            </Button>
+          )}
+          <H4 fontFamily="$heading" color="$color12" flex={1}>
+            {focusedGroup.name}
+          </H4>
+          {isCustomStudyGroup && !focusedGroup.isPublic ? (
+            <SizableText size="$2" color="$gray9" fontWeight="600">
+              Private
+            </SizableText>
+          ) : null}
+        </XStack>
+        <XStack gap="$2" flexWrap="wrap">
+          {isCustomStudyGroup ? (
+            <Button
+              size="$3"
+              theme="purple"
+              variant="outlined"
+              onPress={() => setInviteFromClassOpen(true)}
+            >
+              Invite to study group
+            </Button>
+          ) : null}
+          {canManageCustomStudyGroup ? (
+            <Button
+              size="$3"
+              variant="outlined"
+              onPress={() => setGroupSettingsOpen(true)}
+            >
+              Settings
+            </Button>
+          ) : null}
+        </XStack>
+      </YStack>
+
+      {/* Members */}
+      <MemberList
+        members={focusedGroup.members}
+        createdById={focusedGroup.createdById}
+        viewerId={viewer?.id}
+        canKick={canManageCustomStudyGroup ? true : undefined}
+        onKickMember={(userId) => {
+          removeMember.mutate(
+            { groupId: focusedGroup.id, userId },
+            {
+              onSuccess: () => {
+                void queryClient.invalidateQueries();
+                setFocusedGroup((prev: FocusedStudyGroup | null) =>
+                  prev
+                    ? {
+                        ...prev,
+                        members: prev.members.filter(
+                          (m) => m.userId !== userId,
+                        ),
+                      }
+                    : prev,
+                );
+              },
+            },
+          );
+        }}
+        kickPending={removeMember.isPending}
+      />
+
+      {/* Chat */}
+      <YStack flex={1} minH={320} bg="$gray2" overflow="hidden">
+        <GroupChat
+          groupId={focusedGroup.id}
+          onRemovedFromGroup={() => {
+            setFocusedGroup(null);
+            void queryClient.invalidateQueries();
+          }}
+        />
+      </YStack>
+
+      {/* Sheets */}
+      {(() => {
+        const inviteSectionId = focusedGroup.sectionId
+          ?? myClasses?.find((r: any) => r.courseId === focusedGroup.courseId)?.sectionId;
+        return isCustomStudyGroup && inviteSectionId ? (
+          <InviteClassToStudyGroupSheet
+            open={inviteFromClassOpen}
+            onOpenChange={setInviteFromClassOpen}
+            sectionId={inviteSectionId}
+            courseId={focusedGroup.courseId}
+            onRequestCreateGroup={() => {
+              setInviteFromClassOpen(false);
+              setCreateCustomGroupOpen(true);
+            }}
+          />
+        ) : null;
+      })()}
+
+      {canManageCustomStudyGroup ? (
+        <StudyGroupSettingsSheet
+          open={groupSettingsOpen}
+          onOpenChange={setGroupSettingsOpen}
+          viewerId={viewer?.id}
+          createdById={focusedGroup.createdById}
+          group={{
+            id: focusedGroup.id,
+            name: focusedGroup.name,
+            maxMembers: focusedGroup.maxMembers,
+            isPublic: focusedGroup.isPublic,
+            members: focusedGroup.members,
+          }}
+          onSaved={(g) => setFocusedGroup(toFocusedGroup(g))}
+          onDeleted={() => {
+            setFocusedGroup(null);
+            void queryClient.invalidateQueries();
+          }}
+        />
+      ) : null}
+    </YStack>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+/*  Main screen                                           */
+/* ─────────────────────────────────────────────────────── */
+
 export interface StudyBuddiesScreenProps {
   /** Deep-link from course page: opens the section class chat after load. */
   initialSectionId?: string;
@@ -301,6 +759,9 @@ export function StudyBuddiesScreen({
   initialSectionId,
   initialGroupId,
 }: StudyBuddiesScreenProps = {}) {
+  const media = useMedia();
+  const isDesktop = media.md; // true when viewport >= 768px
+
   const [state, setState] = useState<DrillState>({ level: "schools" });
   const [focusedGroup, setFocusedGroupRaw] = useState<FocusedStudyGroup | null>(
     null,
@@ -332,7 +793,6 @@ export function StudyBuddiesScreen({
     },
     [],
   );
-  const [browseOpen, setBrowseOpen] = useState(false);
   const [createCustomGroupOpen, setCreateCustomGroupOpen] = useState(false);
   const [inviteFromClassOpen, setInviteFromClassOpen] = useState(false);
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
@@ -428,334 +888,136 @@ export function StudyBuddiesScreen({
     }
   }
 
-  if (focusedGroup) {
-    const isCustomStudyGroup = focusedGroup.sectionId === null;
-    /** Visibility, capacity, kicks, and settings apply only to custom study groups — never class chats. */
-    const canManageCustomStudyGroup =
-      isCustomStudyGroup &&
-      viewer &&
-      (focusedGroup.createdById === null ||
-        focusedGroup.createdById === viewer.id);
+  /* shared left-panel props */
+  const leftPanelProps = {
+    myClasses,
+    myClassesLoading,
+    myCustomRows,
+    myCustomLoading,
+    viewer,
+    focusedGroup,
+    ensureClassChatPending: ensureClassChat.isPending,
+    onOpenClassChat: handleOpenClassChat,
+    onFocusGroup: (g: FocusedStudyGroup) => setFocusedGroup(g),
+    onCreateCustomGroup: () => setCreateCustomGroupOpen(true),
+    leaveStudyGroup,
+    deleteStudyGroup,
+    confirmingDeleteListGroupId,
+    setConfirmingDeleteListGroupId,
+    queryClient,
+    setFocusedGroup,
+    drillState: state,
+    onSelectSchool: handleSelectSchool,
+    onSelectCourse: handleSelectCourse,
+    onNavigate: handleNavigate,
+    onSelectBrowseGroup: (groupId: string) =>
+      setState((prev) => ({ ...prev, selectedGroupId: groupId })),
+    onRemovedFromSelectedBrowseGroup: () =>
+      setState((prev) => ({ ...prev, selectedGroupId: undefined })),
+  };
 
+  /* ─── Desktop: two-column layout ─── */
+  if (isDesktop) {
     return (
-      <YStack gap="$4" maxW="$container.full" width="100%" height="100%">
-        <XStack items="center" gap="$3" flexWrap="wrap">
-          <Button
-            size="$3"
-            variant="outlined"
-            onPress={() => setFocusedGroup(null)}
-          >
-            Back
-          </Button>
-          <SizableText size="$4" fontWeight="800" color="$color12">
-            {focusedGroup.name}
-          </SizableText>
-          {isCustomStudyGroup && !focusedGroup.isPublic ? (
-            <SizableText size="$2" color="$gray9" fontWeight="600">
-              Private
-            </SizableText>
-          ) : null}
-          {isCustomStudyGroup ? (
-            <Button
-              size="$3"
-              theme="purple"
-              variant="outlined"
-              onPress={() => setInviteFromClassOpen(true)}
-            >
-              Invite to study group
-            </Button>
-          ) : null}
-          {canManageCustomStudyGroup ? (
-            <Button
-              size="$3"
-              variant="outlined"
-              onPress={() => setGroupSettingsOpen(true)}
-            >
-              Study group settings
-            </Button>
-          ) : null}
-        </XStack>
-        <MemberList
-          members={focusedGroup.members}
-          createdById={focusedGroup.createdById}
-          viewerId={viewer?.id}
-          canKick={canManageCustomStudyGroup}
-          onKickMember={(userId) => {
-            removeMember.mutate(
-              { groupId: focusedGroup.id, userId },
-              {
-                onSuccess: () => {
-                  void queryClient.invalidateQueries();
-                  setFocusedGroup((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          members: prev.members.filter(
-                            (m) => m.userId !== userId,
-                          ),
-                        }
-                      : prev,
-                  );
-                },
-              },
-            );
-          }}
-          kickPending={removeMember.isPending}
-        />
-        <YStack flex={1} minH={320} bg="$gray2" rounded="$4" overflow="hidden">
-          <GroupChat
-            groupId={focusedGroup.id}
-            onRemovedFromGroup={() => {
-              setFocusedGroup(null);
-              void queryClient.invalidateQueries();
-            }}
-          />
+      <YStack width="100%" height="100%">
+        <YStack px="$3" py="$2">
+          <H3 fontFamily="$heading" fontWeight="800" color="$color12">
+            Study Buddies
+          </H3>
         </YStack>
+        <XStack flex={1} overflow="hidden">
+          {/* Left panel */}
+          <YStack
+            width={300}
+            minW={300}
+            maxW={300}
+            height="100%"
+            overflow="scroll"
+            borderRightWidth={2}
+            borderColor="$gray6"
+            bg="$gray1"
+          >
+            <LeftPanelContent {...leftPanelProps} />
+          </YStack>
 
-        {(() => {
-          // For custom groups, resolve sectionId from the user's enrolled sections
-          const inviteSectionId = focusedGroup.sectionId
-            ?? myClasses?.find((r) => r.courseId === focusedGroup.courseId)?.sectionId;
-          return isCustomStudyGroup && inviteSectionId ? (
-            <InviteClassToStudyGroupSheet
-              open={inviteFromClassOpen}
-              onOpenChange={setInviteFromClassOpen}
-              sectionId={inviteSectionId}
-              courseId={focusedGroup.courseId}
-              onRequestCreateGroup={() => {
-                setInviteFromClassOpen(false);
-                setCreateCustomGroupOpen(true);
-              }}
-            />
-          ) : null;
-        })()}
+          {/* Right panel */}
+          <YStack flex={1} height="100%" overflow="hidden">
+            {focusedGroup ? (
+              <RightPanelContent
+                focusedGroup={focusedGroup}
+                viewer={viewer}
+                isDesktop={isDesktop}
+                setFocusedGroup={setFocusedGroup}
+                setInviteFromClassOpen={setInviteFromClassOpen}
+                setGroupSettingsOpen={setGroupSettingsOpen}
+                removeMember={removeMember}
+                queryClient={queryClient}
+                myClasses={myClasses}
+                inviteFromClassOpen={inviteFromClassOpen}
+                setCreateCustomGroupOpen={setCreateCustomGroupOpen}
+                groupSettingsOpen={groupSettingsOpen}
+              />
+            ) : (
+              <EmptyState
+                title="Select a group to start chatting"
+                description="Pick a class chat or study group from the sidebar to view messages and members."
+              />
+            )}
+          </YStack>
+        </XStack>
 
-        {canManageCustomStudyGroup ? (
-          <StudyGroupSettingsSheet
-            open={groupSettingsOpen}
-            onOpenChange={setGroupSettingsOpen}
-            viewerId={viewer?.id}
-            createdById={focusedGroup.createdById}
-            group={{
-              id: focusedGroup.id,
-              name: focusedGroup.name,
-              maxMembers: focusedGroup.maxMembers,
-              isPublic: focusedGroup.isPublic,
-              members: focusedGroup.members,
-            }}
-            onSaved={(g) => setFocusedGroup(toFocusedGroup(g))}
-            onDeleted={() => {
-              setFocusedGroup(null);
-              void queryClient.invalidateQueries();
-            }}
-          />
-        ) : null}
+        <CreateCustomGroupSheet
+          open={createCustomGroupOpen}
+          onOpenChange={setCreateCustomGroupOpen}
+          onCreated={(g) => {
+            setFocusedGroup(toFocusedGroup(g));
+            void queryClient.invalidateQueries();
+          }}
+        />
+      </YStack>
+    );
+  }
+
+  /* ─── Mobile: single-panel toggle ─── */
+  if (focusedGroup) {
+    return (
+      <YStack width="100%" height="100%">
+        <RightPanelContent
+          focusedGroup={focusedGroup}
+          viewer={viewer}
+          isDesktop={false}
+          setFocusedGroup={setFocusedGroup}
+          setInviteFromClassOpen={setInviteFromClassOpen}
+          setGroupSettingsOpen={setGroupSettingsOpen}
+          removeMember={removeMember}
+          queryClient={queryClient}
+          myClasses={myClasses}
+          inviteFromClassOpen={inviteFromClassOpen}
+          setCreateCustomGroupOpen={setCreateCustomGroupOpen}
+          groupSettingsOpen={groupSettingsOpen}
+        />
+
+        <CreateCustomGroupSheet
+          open={createCustomGroupOpen}
+          onOpenChange={setCreateCustomGroupOpen}
+          onCreated={(g) => {
+            setFocusedGroup(toFocusedGroup(g));
+            void queryClient.invalidateQueries();
+          }}
+        />
       </YStack>
     );
   }
 
   return (
-    <YStack gap="$4" maxW="$container.full" width="100%" height="100%">
-      <H3 fontWeight="800" color="$color12">
-        Study Buddies
-      </H3>
-
-      <SizableText size="$3" color="$gray10">
-        Each class you’re enrolled in has one shared group chat with everyone in
-        that section.
-      </SizableText>
-
-      <YStack gap="$2">
-        <SizableText size="$4" fontWeight="700" color="$color12">
-          Your class chats
-        </SizableText>
-        {myClassesLoading ? (
-          <YStack items="center" py="$4">
-            <Spinner size="small" />
-          </YStack>
-        ) : (myClasses ?? []).length === 0 ? (
-          <SizableText size="$3" color="$gray9">
-            Enroll in a course to see its class chat here.
-          </SizableText>
-        ) : (
-          <YStack gap="$2">
-            {(myClasses ?? []).map((row) => (
-              <Button
-                key={row.sectionId}
-                size="$4"
-                theme="purple"
-                justify="flex-start"
-                onPress={() => handleOpenClassChat(row.sectionId)}
-                disabled={ensureClassChat.isPending}
-              >
-                <YStack items="flex-start" gap="$1">
-                  <SizableText fontWeight="700" color="$color12">
-                    {row.courseCode} · {row.term} · Sec {row.sectionCode}
-                  </SizableText>
-                  <SizableText size="$2" color="$gray10">
-                    {row.schoolShortName} · {row.courseName}
-                    {row.classChat
-                      ? ` · ${row.classChat._count?.members ?? row.classChat.members.length} in chat`
-                      : ""}
-                  </SizableText>
-                </YStack>
-              </Button>
-            ))}
-          </YStack>
-        )}
+    <YStack width="100%" height="100%" gap="$2">
+      <YStack px="$3" py="$2">
+        <H3 fontFamily="$heading" fontWeight="800" color="$color12">
+          Study Buddies
+        </H3>
       </YStack>
-
-      <YStack gap="$2">
-        <SizableText size="$4" fontWeight="700" color="$color12">
-          Your study groups
-        </SizableText>
-        <SizableText size="$2" color="$gray10">
-          Smaller groups you create or join — not the same as your section’s
-          class chat.
-        </SizableText>
-        {myCustomLoading ? (
-          <YStack items="center" py="$4">
-            <Spinner size="small" />
-          </YStack>
-        ) : (myCustomRows ?? []).length === 0 ? (
-          <SizableText size="$3" color="$gray9">
-            You’re not in any study groups yet. Create one for a course you’re
-            enrolled in.
-          </SizableText>
-        ) : (
-          <YStack gap="$2">
-            {(myCustomRows ?? []).map(({ group: g }) => {
-              const isOwner =
-                Boolean(viewer?.id) &&
-                Boolean(g.createdById) &&
-                g.createdById === viewer?.id;
-              const leavePending =
-                leaveStudyGroup.isPending &&
-                leaveStudyGroup.variables?.groupId === g.id;
-              const deletePending =
-                deleteStudyGroup.isPending &&
-                deleteStudyGroup.variables?.groupId === g.id;
-
-              return (
-                <YStack key={g.id} gap="$2">
-                  <XStack gap="$2" items="stretch" flexWrap="wrap">
-                    <Button
-                      flex={1}
-                      minW={200}
-                      size="$4"
-                      variant="outlined"
-                      justify="flex-start"
-                      onPress={() => setFocusedGroup(toFocusedGroup(g))}
-                    >
-                      <YStack items="flex-start" gap="$1">
-                        <SizableText fontWeight="700" color="$color12">
-                          {g.name}
-                        </SizableText>
-                        <SizableText size="$2" color="$gray10">
-                          {g.course.code} · {g.course.school.shortName} ·{" "}
-                          {g._count?.members ?? g.members.length} members
-                        </SizableText>
-                      </YStack>
-                    </Button>
-                    {isOwner ? (
-                      <Button
-                        size="$3"
-                        variant="outlined"
-                        borderColor="$red8"
-                        color="$red10"
-                        alignSelf="center"
-                        disabled={deletePending}
-                        onPress={() =>
-                          setConfirmingDeleteListGroupId((cur) =>
-                            cur === g.id ? null : g.id,
-                          )
-                        }
-                      >
-                        Delete
-                      </Button>
-                    ) : (
-                      <Button
-                        size="$3"
-                        variant="outlined"
-                        alignSelf="center"
-                        disabled={leavePending}
-                        onPress={() => {
-                          leaveStudyGroup.mutate(
-                            { groupId: g.id },
-                            {
-                              onSuccess: () => {
-                                if (focusedGroup?.id === g.id) {
-                                  setFocusedGroup(null);
-                                }
-                                void queryClient.invalidateQueries();
-                              },
-                            },
-                          );
-                        }}
-                      >
-                        {leavePending ? "Leaving…" : "Leave"}
-                      </Button>
-                    )}
-                  </XStack>
-                  {confirmingDeleteListGroupId === g.id ? (
-                    <YStack
-                      gap="$2"
-                      p="$3"
-                      bg="$red2"
-                      rounded="$3"
-                      borderWidth={1}
-                      borderColor="$red7"
-                    >
-                      <SizableText size="$2" color="$red11" fontWeight="600">
-                        Delete “{g.name}” permanently? All messages and members
-                        are removed. This cannot be undone.
-                      </SizableText>
-                      <XStack gap="$2" flexWrap="wrap">
-                        <Button
-                          size="$3"
-                          variant="outlined"
-                          disabled={deletePending}
-                          onPress={() => setConfirmingDeleteListGroupId(null)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="$3"
-                          bg="$red9"
-                          color="white"
-                          disabled={deletePending}
-                          onPress={() => {
-                            deleteStudyGroup.mutate(
-                              { groupId: g.id },
-                              {
-                                onSuccess: () => {
-                                  setConfirmingDeleteListGroupId(null);
-                                  if (focusedGroup?.id === g.id) {
-                                    setFocusedGroup(null);
-                                  }
-                                  void queryClient.invalidateQueries();
-                                },
-                              },
-                            );
-                          }}
-                        >
-                          {deletePending ? "Deleting…" : "Yes, delete group"}
-                        </Button>
-                      </XStack>
-                    </YStack>
-                  ) : null}
-                </YStack>
-              );
-            })}
-          </YStack>
-        )}
-        <Button
-          size="$3"
-          theme="purple"
-          onPress={() => setCreateCustomGroupOpen(true)}
-        >
-          New study group
-        </Button>
+      <YStack flex={1} overflow="scroll">
+        <LeftPanelContent {...leftPanelProps} />
       </YStack>
 
       <CreateCustomGroupSheet
@@ -766,53 +1028,6 @@ export function StudyBuddiesScreen({
           void queryClient.invalidateQueries();
         }}
       />
-
-      <YStack gap="$2">
-        <Button
-          size="$3"
-          variant="outlined"
-          onPress={() => setBrowseOpen((o) => !o)}
-        >
-          {/* suppressHydrationWarning: dev can briefly serve an older SSR chunk than the client HMR bundle. */}
-          <SizableText size="$3" suppressHydrationWarning>
-            {browseOpen ? "Hide" : "Show"} schools
-          </SizableText>
-        </Button>
-
-        {browseOpen && (
-          <YStack gap="$4" pt="$2">
-            {state.level !== "schools" && (
-              <Breadcrumb state={state} onNavigate={handleNavigate} />
-            )}
-
-            {state.level === "schools" && (
-              <SchoolsList onSelect={handleSelectSchool} />
-            )}
-
-            {state.level === "courses" && state.selectedSchool && (
-              <CoursesList
-                schoolId={state.selectedSchool.id}
-                schoolName={state.selectedSchool.name}
-                onSelect={handleSelectCourse}
-              />
-            )}
-
-            {state.level === "groups" && state.selectedCourse && (
-              <GroupsList
-                courseId={state.selectedCourse.id}
-                courseCode={state.selectedCourse.code}
-                selectedGroupId={state.selectedGroupId}
-                onSelectGroup={(groupId) =>
-                  setState((prev) => ({ ...prev, selectedGroupId: groupId }))
-                }
-                onRemovedFromSelectedGroup={() =>
-                  setState((prev) => ({ ...prev, selectedGroupId: undefined }))
-                }
-              />
-            )}
-          </YStack>
-        )}
-      </YStack>
     </YStack>
   );
 }

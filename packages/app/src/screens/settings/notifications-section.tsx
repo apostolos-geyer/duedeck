@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Button, H3, SizableText, Spinner, Switch, XStack, YStack } from "@repo/ui";
+import {
+	AppCard,
+	Button,
+	Label,
+	Paragraph,
+	Separator,
+	SizableText,
+	Spinner,
+	Switch,
+	XStack,
+	YStack,
+} from "@repo/ui";
 import { useReminderPreferences, useUpdateReminders } from "../../hooks/use-settings";
 
 const TIMING_OPTIONS = [
@@ -50,14 +61,15 @@ export function NotificationsSection() {
 	}
 
 	return (
-		<YStack gap="$4">
-			<H3 fontWeight="800" color="$color12">
-				Notifications
-			</H3>
-
+		<AppCard size="lg">
 			<YStack gap="$4">
 				<XStack justify="space-between" items="center">
-					<SizableText>Push Notifications</SizableText>
+					<YStack gap="$1" shrink={1}>
+						<Label fontWeight="700">Push Notifications</Label>
+						<Paragraph size="$2" color="$gray10">
+							Receive push alerts for upcoming deadlines
+						</Paragraph>
+					</YStack>
 					<Switch
 						checked={pushEnabled}
 						onCheckedChange={handleTogglePush}
@@ -67,8 +79,15 @@ export function NotificationsSection() {
 					</Switch>
 				</XStack>
 
+				<Separator />
+
 				<XStack justify="space-between" items="center">
-					<SizableText>Email Notifications</SizableText>
+					<YStack gap="$1" shrink={1}>
+						<Label fontWeight="700">Email Notifications</Label>
+						<Paragraph size="$2" color="$gray10">
+							Get email reminders before deadlines
+						</Paragraph>
+					</YStack>
 					<Switch
 						checked={emailEnabled}
 						onCheckedChange={handleToggleEmail}
@@ -78,9 +97,14 @@ export function NotificationsSection() {
 					</Switch>
 				</XStack>
 
+				<Separator />
+
 				<YStack gap="$2">
-					<SizableText>Reminder Timing</SizableText>
-					<XStack gap="$2" flexWrap="wrap">
+					<Label fontWeight="700">Reminder Timing</Label>
+					<Paragraph size="$2" color="$gray10">
+						How far in advance to send reminders
+					</Paragraph>
+					<XStack gap="$2" flexWrap="wrap" mt="$1">
 						{TIMING_OPTIONS.map((option) => (
 							<Button
 								key={option.minutes}
@@ -102,6 +126,6 @@ export function NotificationsSection() {
 					</XStack>
 				</YStack>
 			</YStack>
-		</YStack>
+		</AppCard>
 	);
 }

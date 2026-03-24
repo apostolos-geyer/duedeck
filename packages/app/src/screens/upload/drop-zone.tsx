@@ -68,7 +68,7 @@ export function DropZone({ onFileSelected }: DropZoneProps) {
 			borderWidth={2}
 			borderColor={hovering ? "$purple7" : "$gray5"}
 			borderStyle="dashed"
-			rounded="$4"
+			rounded={0}
 			items="center"
 			justify="center"
 			gap="$3"

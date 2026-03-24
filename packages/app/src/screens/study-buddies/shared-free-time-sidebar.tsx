@@ -42,11 +42,11 @@ export function SharedFreeTimeSidebar({ groupId }: SharedFreeTimeSidebarProps) {
   return (
     <YStack
       width="100%"
-      maxHeight={320}
+      maxH={320}
       $md={{
         width: 300,
-        maxHeight: "100%",
-        flexShrink: 0,
+        maxH: "100%",
+        shrink: 0,
         borderTopWidth: 0,
         borderLeftWidth: 1,
         borderLeftColor: "$gray6",

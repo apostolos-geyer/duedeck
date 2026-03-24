@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, H3, SizableText, Spinner, XStack, YStack } from "@repo/ui";
+import { AppCard, Button, SizableText, Spinner, XStack, YStack } from "@repo/ui";
 import { useCalendarConnections } from "../../hooks/use-calendar-data";
 import { useDisconnectCalendar, useSyncGoogleCalendar } from "../../hooks/use-settings";
 import { useQueryClient } from "@tanstack/react-query";
@@ -58,11 +58,7 @@ export function CalendarsSection() {
 	);
 
 	return (
-		<YStack gap="$4">
-			<H3 fontWeight="800" color="$color12">
-				Connected Calendars
-			</H3>
-
+		<AppCard size="lg">
 			<YStack
 				gap="$3"
 				$sm={{ flexDirection: "row", gap: "$4", flexWrap: "wrap" }}
@@ -71,7 +67,9 @@ export function CalendarsSection() {
 					<YStack
 						key={connection.provider}
 						bg="$gray2"
-						rounded="$4"
+						rounded={0}
+						borderWidth={2}
+						borderColor="$gray6"
 						p="$4"
 						gap="$2"
 						flex={1}
@@ -134,7 +132,9 @@ export function CalendarsSection() {
 							<YStack
 								key={provider}
 								bg="$gray2"
-								rounded="$4"
+								rounded={0}
+								borderWidth={2}
+								borderColor="$gray6"
 								p="$4"
 								gap="$2"
 								flex={1}
@@ -159,6 +159,6 @@ export function CalendarsSection() {
 					</XStack>
 				)}
 			</YStack>
-		</YStack>
+		</AppCard>
 	);
 }
