@@ -23,6 +23,11 @@ export function useDisconnectCalendar() {
 	return useMutation(orpc.settings.disconnectCalendar.mutationOptions());
 }
 
+export function useSyncGoogleCalendar() {
+	const orpc = useOrpc();
+	return useMutation(orpc.settings.syncGoogleCalendar.mutationOptions());
+}
+
 export function useUpdateReminders() {
 	const orpc = useOrpc();
 	return useMutation(orpc.settings.updateReminders.mutationOptions());

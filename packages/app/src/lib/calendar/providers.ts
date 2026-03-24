@@ -26,7 +26,6 @@ export function getProviderConfig(provider: CalendarProvider): ProviderConfig {
 				userinfoUrl: "https://www.googleapis.com/oauth2/v2/userinfo",
 				scopes: [
 					"https://www.googleapis.com/auth/calendar.events",
-					"https://www.googleapis.com/auth/calendar.readonly",
 					"https://www.googleapis.com/auth/userinfo.email",
 				],
 				clientId: requireEnv("GOOGLE_CLIENT_ID"),

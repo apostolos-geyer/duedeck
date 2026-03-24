@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Button, H2, SizableText, Spinner, XStack, YStack } from "@repo/ui";
+import { Button, H2, SizableText, Spinner, View, XStack, YStack } from "@repo/ui";
 import { AlertCircle } from "@tamagui/lucide-icons";
 import { usePresign, useStartDocument, useCancelActiveDocuments } from "../../hooks/use-upload";
 import { useAppRouter } from "../../hooks/use-app-router";
@@ -17,6 +17,7 @@ export function UploadScreen() {
 
 	const [file, setFile] = useState<File | null>(null);
 	const [showConflict, setShowConflict] = useState(false);
+	const [forceFullReprocess, setForceFullReprocess] = useState(false);
 
 	const uploading = presign.isPending || startDoc.isPending;
 	const uploadError = presign.error ?? startDoc.error;
@@ -45,11 +46,12 @@ export function UploadScreen() {
 		const { runId } = await startDoc.mutateAsync({
 			s3Key: key,
 			filename: file.name,
+			...(forceFullReprocess ? { forceFullReprocess: true } : {}),
 		});
 
 		startRun(runId);
 		router.push(`/upload/${runId}`);
-	}, [file, presign, startDoc, startRun, router]);
+	}, [file, presign, startDoc, startRun, router, forceFullReprocess]);
 
 	const handleUpload = useCallback(async () => {
 		if (run && run.status === "processing") {
@@ -61,7 +63,7 @@ export function UploadScreen() {
 
 	const handleCancelAndUpload = useCallback(async () => {
 		setShowConflict(false);
-		await cancelActive.mutateAsync();
+		await cancelActive.mutateAsync(undefined);
 		await doUpload();
 	}, [cancelActive, doUpload]);
 
@@ -112,6 +114,39 @@ export function UploadScreen() {
 			)}
 
 			<DropZone onFileSelected={handleFileSelected} />
+
+			<YStack
+				gap="$2"
+				bg="$purple2"
+				borderWidth={1}
+				borderColor="$purple6"
+				rounded="$4"
+				p="$3"
+			>
+				<SizableText size="$3" fontWeight="700" color="$purple11">
+					Full reprocess
+				</SizableText>
+				<SizableText size="$2" color="$purple10">
+					Run PDF parsing and AI extraction from scratch, even if this file was
+					already uploaded. You will review and confirm again. Unchecked, matching
+					files use faster duplicate handling when possible.
+				</SizableText>
+				<XStack gap="$2" items="center" cursor="pointer" onPress={() => setForceFullReprocess((v) => !v)}>
+					<View
+						width={20}
+						height={20}
+						rounded="$1"
+						borderWidth={2}
+						borderColor={forceFullReprocess ? "$purple9" : "$gray8"}
+						bg={forceFullReprocess ? "$purple9" : "transparent"}
+						items="center"
+						justify="center"
+					/>
+					<SizableText size="$3" color="$color12" flex={1}>
+						Always run full parse and extraction (ignore duplicates)
+					</SizableText>
+				</XStack>
+			</YStack>
 
 			{uploadError && (
 				<SizableText size="$3" color="$red9">

@@ -11,7 +11,13 @@ import {
 import {
 	syllabusExtractionSchema,
 } from "../workflows/parse-document/extraction-schema";
-import { decryptToken, revokeToken, isValidProvider } from "../lib/calendar";
+import {
+	decryptToken,
+	revokeToken,
+	isValidProvider,
+	syncUserDeadlinesToGoogleCalendar,
+	deleteGoogleCalendarEventsForUser,
+} from "../lib/calendar";
 
 export type { ProgressEvent };
 
@@ -69,6 +75,7 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 				s3Key: "string",
 				"sectionId?": "string",
 				filename: "string",
+				"forceFullReprocess?": "boolean",
 			}),
 		)
 		.handler(async ({ input, context }) => {
@@ -236,6 +243,12 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 					course: { include: { school: true } },
 					deadlines: true,
 					gradeWeights: true,
+					documents: {
+						where: { status: "confirmed" },
+						orderBy: { uploadedAt: "desc" },
+						take: 1,
+						select: { id: true, filename: true, s3Key: true },
+					},
 				},
 			});
 		});
@@ -277,6 +290,64 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 					},
 					dueDate: { gte: pastWindow, lte: futureWindow },
 					completed: false,
+				},
+				include: { section: { include: { course: true } } },
+				orderBy: { dueDate: "asc" },
+			});
+		});
+
+	/** Per enrolled section: true when the course has deadlines and the latest due date is in the past. */
+	const deadlineCourseTermsEnded = authed.handler(async ({ context }) => {
+		const enrollments = await prisma.enrollment.findMany({
+			where: { userId: context.userId },
+			select: { sectionId: true },
+		});
+		const sectionIds = [...new Set(enrollments.map((e) => e.sectionId))];
+		const out: Record<string, boolean> = Object.fromEntries(
+			sectionIds.map((id) => [id, false]),
+		);
+		if (sectionIds.length === 0) return out;
+
+		const now = new Date();
+		const groups = await prisma.deadline.groupBy({
+			by: ["sectionId"],
+			where: { sectionId: { in: sectionIds } },
+			_max: { dueDate: true },
+			_count: { _all: true },
+		});
+
+		for (const g of groups) {
+			const latest = g._max.dueDate;
+			if (g._count._all > 0 && latest && latest.getTime() < now.getTime()) {
+				out[g.sectionId] = true;
+			}
+		}
+		return out;
+	});
+
+	/** All deadlines in [from, to] for enrolled sections (includes completed). ISO 8601 strings; max ~1 year span. */
+	const deadlineInRange = authed
+		.input(type({ from: "string", to: "string" }))
+		.handler(async ({ context, input }) => {
+			const from = new Date(input.from);
+			const to = new Date(input.to);
+			if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+				throw new ORPCError("BAD_REQUEST", { message: "Invalid date range" });
+			}
+			if (from > to) {
+				throw new ORPCError("BAD_REQUEST", { message: "from must be before to" });
+			}
+			const maxMs = 366 * 86400000;
+			if (to.getTime() - from.getTime() > maxMs) {
+				throw new ORPCError("BAD_REQUEST", { message: "Date range too large" });
+			}
+
+			return prisma.deadline.findMany({
+				where: {
+					section: {
+						enrollments: { some: { userId: context.userId } },
+					},
+					dueDate: { gte: from, lte: to },
 				},
 				include: { section: { include: { course: true } } },
 				orderBy: { dueDate: "asc" },
@@ -433,6 +504,15 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 		});
 	});
 
+	const syncGoogleCalendar = authed.handler(async ({ context }) => {
+		try {
+			return await syncUserDeadlinesToGoogleCalendar(context.userId);
+		} catch (e) {
+			const message = e instanceof Error ? e.message : "sync_failed";
+			throw new ORPCError("BAD_REQUEST", { message });
+		}
+	});
+
 	const disconnectCalendar = authed
 		.input(type({ provider: "string" }))
 		.handler(async ({ context, input }) => {
@@ -444,6 +524,10 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 					},
 				},
 			});
+
+			if (input.provider === "google") {
+				await deleteGoogleCalendarEventsForUser(context.userId);
+			}
 
 			if (existing?.refreshToken && isValidProvider(input.provider)) {
 				try {
@@ -549,6 +633,8 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 		deadlines: {
 			list: deadlineList,
 			upcoming: deadlineUpcoming,
+			courseTermsEnded: deadlineCourseTermsEnded,
+			inRange: deadlineInRange,
 			toggleComplete: deadlineToggleComplete,
 		},
 		gradeWeights: {
@@ -570,6 +656,7 @@ export function createRouter(getSession: () => Promise<Session | null>) {
 		},
 		settings: {
 			calendarConnections,
+			syncGoogleCalendar,
 			disconnectCalendar,
 			reminderPreferences,
 			updateReminders,

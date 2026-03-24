@@ -13,6 +13,7 @@ export {
 	useUpdateProfile,
 	useReminderPreferences,
 	useDisconnectCalendar,
+	useSyncGoogleCalendar,
 	useUpdateReminders,
 } from "./use-settings";
 export {

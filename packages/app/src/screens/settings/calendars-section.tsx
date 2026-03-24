@@ -2,7 +2,7 @@
 
 import { Button, H3, SizableText, Spinner, XStack, YStack } from "@repo/ui";
 import { useCalendarConnections } from "../../hooks/use-calendar-data";
-import { useDisconnectCalendar } from "../../hooks/use-settings";
+import { useDisconnectCalendar, useSyncGoogleCalendar } from "../../hooks/use-settings";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
@@ -17,16 +17,33 @@ export function CalendarsSection() {
 	const { data: connections, isLoading } = useCalendarConnections();
 	const queryClient = useQueryClient();
 	const disconnect = useDisconnectCalendar();
+	const syncGoogle = useSyncGoogleCalendar();
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 		const params = new URLSearchParams(window.location.search);
 		const calendarStatus = params.get("calendar");
-		if (calendarStatus === "connected") {
+		if (calendarStatus !== "connected") return;
+
+		const finish = () => {
 			queryClient.invalidateQueries();
 			window.history.replaceState({}, "", window.location.pathname);
+		};
+
+		if (params.get("sync") === "1") {
+			const lockKey = "duedeck_gcal_oauth_autosync";
+			const now = Date.now();
+			const prev = sessionStorage.getItem(lockKey);
+			if (prev && now - Number(prev) < 15_000) {
+				finish();
+				return;
+			}
+			sessionStorage.setItem(lockKey, String(now));
+			syncGoogle.mutate(undefined, { onSettled: finish });
+			return;
 		}
-	}, [queryClient]);
+		finish();
+	}, [queryClient, syncGoogle]);
 
 	if (isLoading) {
 		return (
@@ -69,20 +86,35 @@ export function CalendarsSection() {
 								: "Not connected"}
 						</SizableText>
 						{connection.connected ? (
-							<Button
-								variant="outlined"
-								onPress={() => {
-									disconnect.mutate(
-										{ provider: connection.provider },
-										{
-											onSuccess: () => queryClient.invalidateQueries(),
-										},
-									);
-								}}
-								disabled={disconnect.isPending}
-							>
-								Disconnect
-							</Button>
+							<XStack gap="$2" flexWrap="wrap">
+								{connection.provider === "google" && (
+									<Button
+										theme="purple"
+										onPress={() => {
+											syncGoogle.mutate(undefined, {
+												onSuccess: () => queryClient.invalidateQueries(),
+											});
+										}}
+										disabled={syncGoogle.isPending}
+									>
+										Sync now
+									</Button>
+								)}
+								<Button
+									variant="outlined"
+									onPress={() => {
+										disconnect.mutate(
+											{ provider: connection.provider },
+											{
+												onSuccess: () => queryClient.invalidateQueries(),
+											},
+										);
+									}}
+									disabled={disconnect.isPending}
+								>
+									Disconnect
+								</Button>
+							</XStack>
 						) : (
 							<Button
 								theme="purple"

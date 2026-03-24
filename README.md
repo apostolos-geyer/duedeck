@@ -113,7 +113,7 @@ Calendar sync uses OAuth 2.0 to connect a user's Google or Microsoft calendar fr
 
 ### Setup
 
-1. **Google:** Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials. Create an OAuth 2.0 Client ID (Web application). Add the authorized redirect URI:
+1. **Google:** In [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → **Library**, enable **Google Calendar API**. Then go to **Credentials** and create an OAuth 2.0 Client ID (Web application). Add the authorized redirect URI:
 
 ```
 {BETTER_AUTH_URL}/api/calendar/google/callback
@@ -139,6 +139,8 @@ MICROSOFT_CLIENT_SECRET=your-microsoft-client-secret
 ```
 
 4. Visit Settings in the app and click **Connect** on Google Calendar or Microsoft Outlook. You'll be redirected through the OAuth consent flow and back.
+
+5. **Google only:** After connecting, DueDeck runs an initial **Sync now** automatically (deadlines from your enrolled courses are added as all-day events on your primary Google calendar). You can run **Sync again** anytime from Settings or the Calendar page to pick up new or edited deadlines. Disconnecting Google removes those synced events from Google when your tokens are still valid (local sync links are always cleared).
 
 ## Environment Variables
 

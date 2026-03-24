@@ -63,7 +63,22 @@ export async function checkDuplicate(
 		select: { id: true, status: true, parsedS3Key: true, sectionId: true },
 	});
 	if (confirmed) {
-		return { existingDoc: confirmed, salvageableParsedKey: null, salvageableExtraction: null };
+		// Confirmed row sometimes has no parsedS3Key (older runs, partial writes). Any row
+		// with the same content hash shares the same PDF bytes — reuse another doc's key.
+		let parsedS3Key = confirmed.parsedS3Key;
+		if (!parsedS3Key) {
+			const fallback = await prisma.document.findFirst({
+				where: { contentHash, parsedS3Key: { not: null } },
+				select: { parsedS3Key: true },
+				orderBy: { uploadedAt: "desc" },
+			});
+			parsedS3Key = fallback?.parsedS3Key ?? null;
+		}
+		return {
+			existingDoc: { ...confirmed, parsedS3Key },
+			salvageableParsedKey: null,
+			salvageableExtraction: null,
+		};
 	}
 
 	// Check globally for any doc with this hash that already has parsed output
@@ -262,7 +277,6 @@ export async function commitExtractedData(
 			});
 		}
 
-		// Create grade weights
 		if (gradeWeights.length > 0) {
 			await tx.gradeWeight.createMany({
 				data: gradeWeights.map((g) => ({

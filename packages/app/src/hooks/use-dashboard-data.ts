@@ -10,10 +10,17 @@ export function useDashboardData() {
 	const upcomingDeadlines = useQuery(
 		orpc.deadlines.upcoming.queryOptions({ input: { days: 14 } }),
 	);
+	const courseTermsEnded = useQuery(
+		orpc.deadlines.courseTermsEnded.queryOptions({}),
+	);
 
 	return {
 		enrolledSections,
 		upcomingDeadlines,
-		isLoading: enrolledSections.isLoading || upcomingDeadlines.isLoading,
+		courseTermsEnded,
+		isLoading:
+			enrolledSections.isLoading ||
+			upcomingDeadlines.isLoading ||
+			courseTermsEnded.isLoading,
 	};
 }

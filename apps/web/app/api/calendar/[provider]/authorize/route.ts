@@ -1,5 +1,5 @@
-import { auth } from "@repo/auth/server";
 import { buildAuthorizationUrl, isValidProvider } from "@repo/app/lib/calendar";
+import { auth } from "@repo/auth/server";
 import { randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";

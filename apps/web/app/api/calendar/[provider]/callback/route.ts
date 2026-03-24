@@ -1,10 +1,10 @@
-import { auth } from "@repo/auth/server";
 import {
 	exchangeCodeForTokens,
 	fetchProviderEmail,
 	encryptToken,
 	isValidProvider,
 } from "@repo/app/lib/calendar";
+import { auth } from "@repo/auth/server";
 import { prisma } from "@repo/db";
 import { headers } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
@@ -81,7 +81,9 @@ export async function GET(
 			},
 		});
 
-		const response = NextResponse.redirect(settingsUrl("calendar=connected"));
+		const query =
+			provider === "google" ? "calendar=connected&sync=1" : "calendar=connected";
+		const response = NextResponse.redirect(settingsUrl(query));
 		response.cookies.delete("calendar_oauth_state");
 		return response;
 	} catch (err) {

@@ -73,7 +73,7 @@ export async function exchangeCodeForTokens(
 export async function refreshAccessToken(
 	provider: CalendarProvider,
 	refreshToken: string,
-): Promise<{ accessToken: string; expiresIn: number }> {
+): Promise<{ accessToken: string; expiresIn: number; refreshToken?: string | null }> {
 	const config = getProviderConfig(provider);
 
 	const body = new URLSearchParams({
@@ -98,6 +98,7 @@ export async function refreshAccessToken(
 	return {
 		accessToken: data.access_token,
 		expiresIn: data.expires_in,
+		refreshToken: data.refresh_token ?? undefined,
 	};
 }
 

@@ -3,7 +3,7 @@
 import { Button, H4, SizableText, Spinner, YStack } from "@repo/ui";
 import { Download } from "@tamagui/lucide-icons";
 import { useCalendarConnections } from "../../hooks/use-calendar-data";
-import { useDisconnectCalendar } from "../../hooks/use-settings";
+import { useDisconnectCalendar, useSyncGoogleCalendar } from "../../hooks/use-settings";
 import { useQueryClient } from "@tanstack/react-query";
 
 const OAUTH_PROVIDERS = new Set(["google", "microsoft"]);
@@ -16,6 +16,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 export function CalendarSyncPanel() {
 	const { data: connections, isLoading } = useCalendarConnections();
 	const disconnect = useDisconnectCalendar();
+	const syncGoogle = useSyncGoogleCalendar();
 	const queryClient = useQueryClient();
 
 	if (isLoading) {
@@ -65,21 +66,36 @@ export function CalendarSyncPanel() {
 						</SizableText>
 
 						{conn.connected ? (
-							<Button
-								size="$3"
-								mt="$2"
-								onPress={() => {
-									disconnect.mutate(
-										{ provider: conn.provider },
-										{
-											onSuccess: () => queryClient.invalidateQueries(),
-										},
-									);
-								}}
-								disabled={disconnect.isPending}
-							>
-								Disconnect
-							</Button>
+							<YStack gap="$2" mt="$2">
+								{conn.provider === "google" && (
+									<Button
+										size="$3"
+										theme="purple"
+										onPress={() => {
+											syncGoogle.mutate(undefined, {
+												onSuccess: () => queryClient.invalidateQueries(),
+											});
+										}}
+										disabled={syncGoogle.isPending}
+									>
+										Sync now
+									</Button>
+								)}
+								<Button
+									size="$3"
+									onPress={() => {
+										disconnect.mutate(
+											{ provider: conn.provider },
+											{
+												onSuccess: () => queryClient.invalidateQueries(),
+											},
+										);
+									}}
+									disabled={disconnect.isPending}
+								>
+									Disconnect
+								</Button>
+							</YStack>
 						) : (
 							<Button
 								size="$3"

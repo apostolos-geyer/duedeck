@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Button, H2, H3, SizableText, Spinner, Theme, View, XStack, YStack } from "@repo/ui";
+import { FileText } from "@tamagui/lucide-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCourseDetail } from "../../hooks/use-course-detail";
 import { useEnroll, useUnenroll } from "../../hooks/use-enrollment";
+import { PdfViewer } from "../upload";
 import { GradeBreakdown } from "./grade-breakdown";
 import { DeadlineTimeline } from "./deadline-timeline";
 import { StudyGroupCTA } from "./study-group-cta";
@@ -14,6 +17,7 @@ interface CourseDetailScreenProps {
 
 export function CourseDetailScreen({ sectionId }: CourseDetailScreenProps) {
 	const queryClient = useQueryClient();
+	const [syllabusOpen, setSyllabusOpen] = useState(false);
 	const { section, deadlines, gradeWeights, isEnrolled, isLoading } =
 		useCourseDetail(sectionId);
 	const enroll = useEnroll();
@@ -37,6 +41,8 @@ export function CourseDetailScreen({ sectionId }: CourseDetailScreenProps) {
 	}
 
 	const course = sectionData.course;
+	const syllabusDoc = sectionData.documents?.[0];
+	const syllabusKey = syllabusDoc?.s3Key;
 
 	return (
 		<Theme name={sectionData.theme as any}>
@@ -77,6 +83,35 @@ export function CourseDetailScreen({ sectionId }: CourseDetailScreenProps) {
 						mt="$2"
 					/>
 				</YStack>
+
+				{syllabusKey ? (
+					<YStack gap="$3" width="100%">
+						<Button
+							size="$3"
+							variant="outlined"
+							icon={FileText}
+							onPress={() => setSyllabusOpen((o) => !o)}
+						>
+							{syllabusOpen ? "Hide syllabus PDF" : "View syllabus PDF"}
+						</Button>
+						{syllabusOpen ? (
+							<YStack
+								gap="$2"
+								width="100%"
+								bg="$gray2"
+								rounded="$4"
+								p="$3"
+								borderWidth={1}
+								borderColor="$gray6"
+							>
+								<SizableText size="$2" color="$gray10">
+									{syllabusDoc?.filename ?? "Syllabus"}
+								</SizableText>
+								<PdfViewer s3Key={syllabusKey} height={480} />
+							</YStack>
+						) : null}
+					</YStack>
+				) : null}
 
 				{/* Enrollment */}
 				<XStack gap="$3">

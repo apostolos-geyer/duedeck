@@ -26,6 +26,7 @@ model User {
   studyGroupMemberships StudyGroupMember[]
   sentMessages  Message[]
   calendarConnections CalendarConnection[]
+  calendarEventLinks CalendarEventLink[]
   reminderPreferences ReminderPreference[]
   @@unique([email])
   @@map("user")
@@ -166,6 +167,7 @@ model Deadline {
   weight    Float
   completed Boolean       @default(false)
   section   CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  calendarEventLinks CalendarEventLink[]
 
   @@index([sectionId])
   @@index([dueDate])
@@ -238,6 +240,21 @@ model CalendarConnection {
 
   @@unique([userId, provider])
   @@map("calendar_connection")
+}
+
+model CalendarEventLink {
+  id              String   @id @default(uuid())
+  userId          String
+  deadlineId      String
+  provider        String
+  externalEventId String
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deadline        Deadline @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deadlineId, provider])
+  @@index([userId, provider])
+  @@map("calendar_event_link")
 }
 
 model ReminderPreference {

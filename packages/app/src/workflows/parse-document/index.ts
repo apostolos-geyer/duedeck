@@ -31,6 +31,8 @@ export interface ParseDocumentInput {
 	sectionId?: string;
 	filename: string;
 	uploadedById: string;
+	/** Ignore duplicate shortcuts: always Hermes parse + AI extract + full commit. */
+	forceFullReprocess?: boolean;
 }
 
 export async function parseDocumentWorkflow(input: ParseDocumentInput) {
@@ -40,6 +42,8 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 	let contentHash: string | undefined;
 
 	try {
+		const forceFull = input.forceFullReprocess === true;
+
 		// 1. Compute content hash
 		await writeProgress("hashing", "start");
 		contentHash = await computeContentHash(input.s3Key);
@@ -56,7 +60,7 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 		if (existingDoc) {
 			const isConfirmed = existingDoc.status === "confirmed";
 
-			if (isConfirmed) {
+			if (isConfirmed && !forceFull) {
 				await enrollUserInDocSection(existingDoc.id, input.uploadedById);
 				await writeProgress("dedup", "done", { isDuplicate: true });
 				await writeProgress("done", "done", {
@@ -71,33 +75,46 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 				};
 			}
 
-			if (existingDoc.parsedS3Key) {
-				parsedS3Key = existingDoc.parsedS3Key;
+			if (!isConfirmed) {
+				if (!forceFull && existingDoc.parsedS3Key) {
+					parsedS3Key = existingDoc.parsedS3Key;
+				}
+				await deleteDocument(existingDoc.id);
+				await writeProgress("dedup", "done", {
+					isDuplicate: true,
+					retrying: true,
+					skippingHermes: !forceFull && !!parsedS3Key,
+				});
+			} else {
+				await writeProgress("dedup", "done", {
+					isDuplicate: true,
+					fullReprocess: true,
+				});
 			}
-			await deleteDocument(existingDoc.id);
-			await writeProgress("dedup", "done", {
-				isDuplicate: true,
-				retrying: true,
-				skippingHermes: !!parsedS3Key,
-			});
 		} else {
-			if (salvageableParsedKey) {
-				parsedS3Key = salvageableParsedKey;
-			}
-			if (salvageableExtraction) {
-				priorExtraction = salvageableExtraction;
+			if (!forceFull) {
+				if (salvageableParsedKey) {
+					parsedS3Key = salvageableParsedKey;
+				}
+				if (salvageableExtraction) {
+					priorExtraction = salvageableExtraction;
+				}
 			}
 			await writeProgress("dedup", "done", {
 				isDuplicate: false,
-				skippingHermes: !!parsedS3Key,
+				skippingHermes: !forceFull && !!parsedS3Key,
 			});
 		}
 
 		// 3. Create fresh document record
 		docId = await createDocumentRecord({
-			...input,
+			s3Key: input.s3Key,
+			sectionId: input.sectionId,
+			filename: input.filename,
+			uploadedById: input.uploadedById,
 			contentHash,
 			status: "processing",
+			...(parsedS3Key ? { parsedS3Key } : {}),
 		});
 
 		// 4. Parse via Hermes if we don't already have parsed markdown
@@ -130,10 +147,20 @@ export async function parseDocumentWorkflow(input: ParseDocumentInput) {
 			await writeProgress("parsing", "start");
 		}
 
+		if (!parsedS3Key) {
+			const msg = "No parsed markdown key available";
+			await failDocument(docId, msg);
+			await writeProgress("parsing", "done", { error: msg });
+			await writeProgress("done", "done", { docId, error: msg });
+			await closeStream();
+			return { docId, contentHash, deduplicated: false };
+		}
+
 		// 4b. Fetch the parsed markdown
+		const markdownKey = parsedS3Key;
 		let markdownContent: string;
 		try {
-			markdownContent = await fetchMarkdown(parsedS3Key);
+			markdownContent = await fetchMarkdown(markdownKey);
 		} catch (err) {
 			const msg = `Failed to fetch parsed markdown: ${err instanceof Error ? err.message : String(err)}`;
 			await failDocument(docId, msg);
