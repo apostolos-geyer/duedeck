@@ -609,7 +609,7 @@ export function createRouter(getSession: () => Promise<Session | null>) {
   const studyGroupGet = authed
     .input(type({ groupId: "string" }))
     .handler(async ({ context, input }) => {
-      const member = await prisma.studyGroupMember.findUnique({
+      let member = await prisma.studyGroupMember.findUnique({
         where: {
           groupId_userId: {
             groupId: input.groupId,
@@ -617,6 +617,32 @@ export function createRouter(getSession: () => Promise<Session | null>) {
           },
         },
       });
+
+      // Auto-join class chats: if the group is a class chat and the user is
+      // enrolled in that section, add them as a member automatically.
+      if (!member) {
+        const group = await prisma.studyGroup.findUnique({
+          where: { id: input.groupId },
+          select: { sectionId: true },
+        });
+        if (group?.sectionId) {
+          const enrolled = await prisma.enrollment.findFirst({
+            where: {
+              userId: context.userId,
+              sectionId: group.sectionId,
+            },
+          });
+          if (enrolled) {
+            member = await prisma.studyGroupMember.create({
+              data: {
+                groupId: input.groupId,
+                userId: context.userId,
+              },
+            });
+          }
+        }
+      }
+
       if (!member) {
         throw new ORPCError("FORBIDDEN", { message: "not_a_member" });
       }
