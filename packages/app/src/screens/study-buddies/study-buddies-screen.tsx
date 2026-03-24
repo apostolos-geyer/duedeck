@@ -108,7 +108,7 @@ export function StudyBuddiesScreen({
   }
 
   return (
-    <YStack gap="$4" maxW="$container.full" width="100%">
+    <YStack gap="$4" maxW="$container.full" width="100%" p="$3" self="center">
       {/* Create group sheet */}
       <CreateCustomGroupSheet
         open={createGroupOpen}

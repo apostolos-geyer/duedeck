@@ -2,12 +2,12 @@
 
 import {
 	H3,
-	Paragraph,
-	Separator,
 	Spinner,
+	XStack,
 	YStack,
+	useMedia,
 } from "@repo/ui";
-import { AppCard, EmptyState } from "@repo/ui";
+import { EmptyState } from "@repo/ui";
 import { useDashboardData } from "../../hooks/use-dashboard-data";
 import { Link } from "../../components/link";
 import { StatsRow } from "./stats-row";
@@ -31,6 +31,7 @@ function isThisMonth(date: Date | string): boolean {
 }
 
 export function DashboardScreen() {
+	const media = useMedia();
 	const { enrolledSections, upcomingDeadlines, courseTermsEnded, isLoading } =
 		useDashboardData();
 
@@ -56,7 +57,7 @@ export function DashboardScreen() {
 	).length;
 
 	return (
-		<YStack gap="$4" maxW="$container.full" width="100%">
+		<YStack gap="$4" maxW="$container.full" width="100%" p="$3" $md={{ px: "$6", py: "$5" }} self="center">
 			{/* Compact stats line */}
 			<StatsRow
 				dueThisWeek={dueThisWeek}
@@ -64,10 +65,13 @@ export function DashboardScreen() {
 				totalCourses={sections.length}
 			/>
 
-			{/* Two-column layout on desktop, single column mobile */}
-			<YStack gap="$4" $md={{ flexDirection: "row", gap: "$5" }}>
-				{/* LEFT: Deadlines (60% on desktop) */}
-				<YStack gap="$3" $md={{ flex: 3, minW: 0 }}>
+			{/* Two-column on desktop, single column mobile */}
+			{(() => {
+				const Wrapper = media.md ? XStack : YStack;
+				return (
+			<Wrapper gap={media.md ? "$5" : "$4"}>
+				{/* LEFT: Deadlines */}
+				<YStack gap="$3" {...(media.md ? { flex: 3, minW: 0 } : {})}>
 					<H3 fontFamily="$heading" color="$color12">
 						Upcoming Deadlines
 					</H3>
@@ -78,19 +82,16 @@ export function DashboardScreen() {
 							description="Upload a syllabus to automatically extract your deadlines."
 						/>
 					) : (
-						<AppCard variant="outlined" size="sm" p="$0">
-							{deadlines.map((deadline, i) => (
-								<YStack key={deadline.id}>
-									{i > 0 && <Separator />}
-									<DeadlineCard deadline={deadline} />
-								</YStack>
+						<YStack gap="$2">
+							{deadlines.map((deadline) => (
+								<DeadlineCard key={deadline.id} deadline={deadline} />
 							))}
-						</AppCard>
+						</YStack>
 					)}
 				</YStack>
 
-				{/* RIGHT: Courses + Upload (40% on desktop) */}
-				<YStack gap="$3" $md={{ flex: 2, minW: 0 }}>
+				{/* RIGHT: Courses + Upload */}
+				<YStack gap="$3" {...(media.md ? { flex: 2, minW: 0 } : {})}>
 					<H3 fontFamily="$heading" color="$color12">
 						My Courses
 					</H3>
@@ -128,7 +129,9 @@ export function DashboardScreen() {
 						</YStack>
 					)}
 				</YStack>
-			</YStack>
+			</Wrapper>
+				);
+			})()}
 		</YStack>
 	);
 }

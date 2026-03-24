@@ -1,6 +1,7 @@
 "use client";
 
-import { BrutalistListItem, Paragraph, SizableText, Theme, View } from "@repo/ui";
+import { AppCard } from "@repo/ui";
+import { Paragraph, SizableText, Theme, View, XStack, YStack } from "@repo/ui";
 
 interface DeadlineCardProps {
 	deadline: {
@@ -50,53 +51,45 @@ export function DeadlineCard({ deadline }: DeadlineCardProps) {
 
 	return (
 		<Theme name={courseTheme as any}>
-			<BrutalistListItem
-				rounded={0}
-				borderLeftWidth={3}
+			<AppCard
+				variant="elevated"
+				size="sm"
+				borderLeftWidth={4}
 				borderLeftColor="$color9"
-				bg={overdue ? "$red2" : "transparent"}
+				opacity={deadline.completed ? 0.5 : 1}
+				bg={overdue ? "$red2" : "$background"}
 				hoverStyle={{ bg: overdue ? "$red3" : "$gray2" }}
 				pressStyle={{ bg: "$gray3" }}
-				opacity={deadline.completed ? 0.5 : 1}
-				py="$2"
-				px="$3"
-				icon={
-					<View
-						bg="$color9"
-						rounded={0}
-						px="$2"
-						py="$1"
-					>
+				cursor="pointer"
+			>
+				<XStack items="center" gap="$3">
+					<View bg="$color9" rounded={0} px="$2" py="$1">
 						<SizableText size="$1" fontWeight="700" color="white">
 							{courseCode}
 						</SizableText>
 					</View>
-				}
-				title={
+					<YStack flex={1} gap={2}>
+						<Paragraph
+							size="$3"
+							fontWeight="500"
+							color="$color12"
+							textDecorationLine={deadline.completed ? "line-through" : "none"}
+						>
+							{deadline.title}
+						</Paragraph>
+						<SizableText size="$1" color="$gray9">
+							{deadline.type} · {deadline.weight}%
+						</SizableText>
+					</YStack>
 					<Paragraph
 						size="$3"
-						fontWeight="500"
-						color="$color12"
-						textDecorationLine={deadline.completed ? "line-through" : "none"}
-					>
-						{deadline.title}
-					</Paragraph>
-				}
-				subTitle={
-					<SizableText size="$1" color="$gray9">
-						{deadline.type} · {deadline.weight}%
-					</SizableText>
-				}
-				iconAfter={
-					<Paragraph
-						size="$2"
 						fontWeight="600"
 						color={overdue ? "$red10" : urgent ? "$orange10" : "$gray10"}
 					>
 						{relDate}
 					</Paragraph>
-				}
-			/>
+				</XStack>
+			</AppCard>
 		</Theme>
 	);
 }

@@ -33,10 +33,8 @@ export function AppShell({ user, children }: AppShellProps) {
 
 	return (
 		<XStack height="100vh" width="100vw">
-			{/* Desktop nav rail */}
 			<Sidebar user={user} />
 
-			{/* Mobile sidebar overlay */}
 			{sidebarOpen && (
 				<>
 					<View
@@ -68,10 +66,8 @@ export function AppShell({ user, children }: AppShellProps) {
 			<YStack flex={1} overflow="hidden">
 				<TopBar user={user} onMenuPress={toggleSidebar} />
 				<ProcessingBanner orpc={orpc} onNavigate={(p) => router.push(p)} />
-				<YStack flex={1} overflow="scroll" p="$3" $md={{ px: "$6", py: "$5" }} items="center">
-					<YStack width="100%" maxW="$container.full" flex={1}>
-						{children}
-					</YStack>
+				<YStack flex={1} overflow="scroll">
+					{children}
 				</YStack>
 				<BottomTabBar />
 			</YStack>

@@ -34,7 +34,7 @@ export function CalendarScreen() {
 	}
 
 	return (
-		<YStack gap="$4" $md={{ gap: "$5" }} maxW="$container.full" width="100%">
+		<YStack gap="$4" maxW="$container.full" width="100%" p="$3" self="center">
 			<CalendarHeader
 				currentDate={currentDate}
 				onPrev={handlePrev}

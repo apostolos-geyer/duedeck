@@ -1,73 +1,25 @@
 "use client";
 
-import { SizableText, View, XStack, YStack } from "@repo/ui";
-import { GraduationCap, Users, BookOpen } from "@tamagui/lucide-icons";
+import { BrutalistListItem } from "@repo/ui";
+import { ChevronRight, GraduationCap } from "@tamagui/lucide-icons";
 
 interface SchoolCardProps {
 	school: {
 		id: string;
 		name: string;
 		shortName: string;
-		studentCount?: number;
-		courseCount?: number;
 	};
 	onPress: () => void;
 }
 
 export function SchoolCard({ school, onPress }: SchoolCardProps) {
 	return (
-		<YStack
-			bg="$gray2"
-			rounded="$4"
-			p="$5"
-			gap="$3"
-			cursor="pointer"
-			hoverStyle={{ bg: "$gray3", scale: 0.99 }}
-			pressStyle={{ bg: "$gray4", scale: 0.98 }}
+		<BrutalistListItem
 			onPress={onPress}
-			style={{ flex: "1 1 280px" }}
-		>
-			<XStack items="center" gap="$3">
-				<View
-					width={48}
-					height={48}
-					rounded="$4"
-					bg="$purple3"
-					items="center"
-					justify="center"
-				>
-					<GraduationCap size={24} color="$purple9" />
-				</View>
-				<YStack gap="$1" flex={1}>
-					<SizableText size="$5" fontWeight="800" color="$color12">
-						{school.shortName}
-					</SizableText>
-					<SizableText size="$2" color="$gray10" numberOfLines={1}>
-						{school.name}
-					</SizableText>
-				</YStack>
-			</XStack>
-
-			{(school.studentCount != null || school.courseCount != null) && (
-				<XStack gap="$4">
-					{school.studentCount != null && (
-						<XStack gap="$1" items="center">
-							<Users size={14} color="$gray9" />
-							<SizableText size="$2" color="$gray10">
-								{school.studentCount.toLocaleString()} students
-							</SizableText>
-						</XStack>
-					)}
-					{school.courseCount != null && (
-						<XStack gap="$1" items="center">
-							<BookOpen size={14} color="$gray9" />
-							<SizableText size="$2" color="$gray10">
-								{school.courseCount} courses
-							</SizableText>
-						</XStack>
-					)}
-				</XStack>
-			)}
-		</YStack>
+			icon={<GraduationCap size={18} color="$purple9" />}
+			title={school.shortName}
+			subTitle={school.name}
+			iconAfter={<ChevronRight size={16} color="$gray8" />}
+		/>
 	);
 }
