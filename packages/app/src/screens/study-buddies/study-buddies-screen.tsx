@@ -279,7 +279,7 @@ export function StudyBuddiesScreen({
           }}
           onSelectSchool={(school) => setDrillState({ level: "courses", selectedSchool: school })}
           onSelectCourse={(course) => setDrillState((s) => ({ ...s, level: "groups", selectedCourse: course }))}
-          onSelectGroup={(groupId) => setDrillState((s) => ({ ...s, selectedGroupId: groupId }))}
+          onSelectGroup={(groupId) => onNavigateToChat?.(groupId)}
           onJoinedGroup={(groupId) => {
             onNavigateToChat?.(groupId);
             void queryClient.invalidateQueries();
